@@ -1,0 +1,120 @@
+---
+description: Enforces spec-before-code and explicit branches/handoffs documented under spec/—aligned with PRODUCT.md, STRUCTURE.md, TECH.md, and spec planning.
+alwaysApply: true
+---
+
+# Spec-Driven Development Enforcer
+
+This repository is **spec-driven**. Before writing or changing behavior, align work with written intent. Multi-step or cross-boundary behavior must be captured under **`spec/<spec_name>/`** (see **Spec planning enforcer**), not only in code. In Cursor use **`@spec`**.
+
+## Authority order
+
+1. **`PRODUCT.md`** — product intent, scope, outcomes, constraints.
+2. **`STRUCTURE.md`** — where code lives, module boundaries, ownership.
+3. **`TECH.md`** — stack, ADRs, security/ops constraints.
+4. **`spec/<spec_name>/`** — **`DESIGN.md`**, **`REQUIREMENTS.md`** (EARS where applicable), and **`tasks/N_<task>.plan.md`** (see `.cursor/rules/spec-planning-enforcer.mdc`).
+
+If implementation would contradict these, **stop**: update the relevant doc, add/adjust an ADR in `TECH.md` or `docs/decisions/`, then implement.
+
+## Missing root docs — mandatory protocol (`PRODUCT.md`, `STRUCTURE.md`, `TECH.md`)
+
+At **repository root**, these files are required for spec-driven work. **`PRODUCT.md` first, then `STRUCTURE.md`, then `TECH.md`**. Do not create **`STRUCTURE.md`** until **`PRODUCT.md`** exists (draft OK); do not create **`TECH.md`** until **`STRUCTURE.md`** exists (draft OK).
+
+### Detection
+
+If any of the three are **missing** or empty placeholders only, before significant implementation:
+
+1. **List** which are missing.
+2. **Ask:** “Do you want me to create the missing root docs? I’ll use this order: **PRODUCT.md → STRUCTURE.md → TECH.md**.”
+3. If **no**, stop; offer minimal questions if they only want guidance.
+4. If **yes**, create **only the next file in order**. Ask the **phase questions** below before writing; use answers already in the thread when present.
+
+### Phase 1 — `PRODUCT.md` (first)
+
+Ask (adapt if answered):
+
+- What does this product/repo **do**, for **whom**, and what is **MVP** vs later?
+- **Problem**, **vision**, **target users**, **constraints** (market, compliance)?
+- **MVP scope** vs **out of scope**?
+- **Success** or validation signals?
+- Link to existing **`spec/`** or roadmap if any?
+
+Create from the repo’s **PRODUCT.md** template (sections through at least Summary, MVP scope, out of scope). **Do not** add `STRUCTURE.md` or `TECH.md` in the same turn unless `PRODUCT.md` is done and the user confirms the next phase.
+
+### Phase 2 — `STRUCTURE.md` (second; after `PRODUCT.md` exists)
+
+Ask:
+
+- **Repository purpose** (what this repo contains / excludes)?
+- **Top-level layout** (apps, packages, `spec/`, `infra`—map to actual or planned tree)?
+- **Module boundaries** and **dependency rules**?
+- **Where** do specs, tests, infra, scripts live?
+- **Ownership** or review map if team?
+
+Create from the **STRUCTURE.md** template. **Do not** add `TECH.md` until this phase is complete and the user confirms.
+
+### Phase 3 — `TECH.md` (third; after `STRUCTURE.md` exists)
+
+Ask:
+
+- **Stack** (languages, frameworks, DB, hosting, CI)—tie to `STRUCTURE.md` paths?
+- **Security baseline** (auth, secrets, sensitive data)?
+- **NFR / SLO** targets (even if TBD)?
+- **Observability**, **environments**, **migration** policy?
+- **ADRs** needed for unknown choices?
+
+Create from the **TECH.md** template.
+
+### Full bootstrap order (summary)
+
+**`PRODUCT.md` → `STRUCTURE.md` → `TECH.md` →** then **`spec/<spec_name>/`** per `.cursor/rules/spec-planning-enforcer.mdc` (**`DESIGN.md` → `REQUIREMENTS.md` (EARS) → `tasks/N_*.plan.md`**). Never skip a layer unless the user **explicitly waives** with owner + reason.
+
+## Before implementing a change
+
+- [ ] If **`PRODUCT.md`**, **`STRUCTURE.md`**, or **`TECH.md`** is **missing** or not yet meaningful, follow **Missing root docs — mandatory protocol** above before coding.
+- [ ] If **`spec/<spec_name>/`** is missing **`DESIGN.md`**, **`REQUIREMENTS.md`**, or needed **`tasks/N_*.plan.md`**, follow **Missing required files — mandatory protocol** in `.cursor/rules/spec-planning-enforcer.mdc` before coding.
+- [ ] Read **`PRODUCT.md`** and the relevant **`spec/<spec_name>/`** docs (e.g. `@spec`).
+- [ ] Read **`STRUCTURE.md`** to place code in the right module and respect dependency direction.
+- [ ] Read **`TECH.md`** for stack, security, and operational constraints.
+- [ ] If the change introduces or alters **multi-step behavior**, async jobs, webhooks, payments, auth boundaries, or irreversible side effects: document in **`DESIGN.md`**, **`REQUIREMENTS.md`** (EARS), or **`tasks/*.plan.md`**—see **Spec planning enforcer**.
+- [ ] When executing work from **`tasks/N_*.plan.md`**, use the plan’s **`git_branch`** (**`spec_name/task-slug`**). Merge **`depends_on_tasks`** branches before the current task’s PR unless the plan documents a waiver and stack/rebase strategy.
+
+## Behavioral detail (when required)
+
+Expand **DESIGN.md** or **REQUIREMENTS.md** (EARS) or **task plans** when **any** of the following apply:
+
+- More than one sequential step or parallel branch with user-visible or persisted state.
+- Handoff between **UI ↔ API ↔ worker ↔ external provider ↔ DB**.
+- Failure modes that need cleanup, rollback, compensation, or idempotency.
+- Timeouts, retries, or race-prone ordering.
+
+Capture **happy path + validation + timeouts + transient vs permanent failure + partial failure cleanup + observable states** where risk warrants it. Map branches to tests in **`tasks/*.plan.md`** or **`TECH.md`** testing section.
+
+Do **not** encode product rules only in code or comments.
+
+## During implementation
+
+- Prefer **small, reviewable changes** that trace to a requirement, design, or task plan step.
+- **Handoffs** (APIs, events, queues): define or follow explicit **payload, success, failure codes, timeout, retryability, and cleanup** in **design, EARS requirements, or task plan**—not only in code.
+- **Observable state**: for critical steps, ensure it is clear what the user sees and what is persisted (per the spec).
+- If you discover behavior **not** described in specs: treat it as a **spec gap**—document it in the same change (or file a follow-up with a clear TODO and owner only if unavoidable).
+
+## After implementation
+
+- [ ] Update **`PRODUCT.md`** / **`spec/<spec_name>/`** if user-visible scope or acceptance changed.
+- [ ] Update **`STRUCTURE.md`** if directories, ownership, or boundaries changed.
+- [ ] Update **`TECH.md`** if stack, ADRs, SLOs, or security posture changed.
+- [ ] Mark completed **task** checkboxes or add a short completion note under **`tasks/`**.
+- [ ] Add or adjust **tests** that cover **EARS** requirements for critical paths.
+
+## Explicit anti-patterns
+
+- Shipping a feature with **no** written acceptance path in **`PRODUCT.md`** or **`spec/<spec_name>/REQUIREMENTS.md`**.
+- Adding routes, jobs, or webhooks **without** updating the relevant **spec** when behavior is non-trivial.
+- **Happy-path-only** reasoning for behavior that can fail mid-flight or leave partial state.
+- **Silent drift**: code matches an outdated doc—fix the doc or the code in the same effort.
+
+## When unsure
+
+- Prefer **documenting the decision** (short ADR or spec update) over improvising behavior.
+- Prefer **explicit** failure branches, handoffs, and cleanup over implicit assumptions.

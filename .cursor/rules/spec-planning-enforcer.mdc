@@ -1,0 +1,128 @@
+---
+description: Enforces spec folder planning—DESIGN first, EARS REQUIREMENTS second, actionable task plans under tasks/.
+alwaysApply: true
+---
+
+# Spec planning enforcer
+
+Non-trivial work is **planned in writing** under **`spec/<spec_name>/`** before implementation. In Cursor, attach **`@spec`** when discussing a spec. Use a **kebab-case** `spec_name` (e.g. `patient-import`, `auth-mfa`).
+
+**Bootstrap order for the whole repo:** create **`PRODUCT.md` → `STRUCTURE.md` → `TECH.md`** first when any are missing (see **Missing root docs — mandatory protocol** in `.cursor/rules/spec-driven-enforcer.mdc`). Only then use the **`spec/<spec_name>/`** flow below.
+
+## Required layout per spec
+
+```
+spec/<spec_name>/
+  DESIGN.md           # Technical design first—bounds the solution before EARS requirements
+  REQUIREMENTS.md       # EARS (and supporting notes) where applicable—what the system must do
+  tasks/
+    1_<task-slug>.plan.md
+    2_<task-slug>.plan.md
+    ...
+    N_<task-slug>.plan.md
+```
+
+- **`DESIGN.md`** — Architecture, components, data touchpoints, trade-offs, failure posture—aligned with **`STRUCTURE.md`** and **`TECH.md`**. **Created before** `REQUIREMENTS.md` so requirements are written against an agreed design.
+- **`REQUIREMENTS.md`** — **EARS**-style requirements **where they apply** (Ubiquitous, Event-driven, State-driven, Optional, Unwanted behavior), plus scope and traceability—aligned with **`PRODUCT.md`** and **`DESIGN.md`**.
+- **`tasks/N_<task-slug>.plan.md`** — **Actionable execution** (Cursor-style): checkboxes, small PR-sized steps. All task plans live under **`tasks/`**, not the spec root.
+
+## Git branch mapping (mandatory per task)
+
+For each **`tasks/N_<task-slug>.plan.md`**:
+
+- **Branch name must be** **`spec_name/task-slug`** (exactly one `/`; use **kebab-case** for both segments unless the repo already documents an exception).
+- **`spec_name`** = parent folder `spec/<spec_name>/`.
+- **`task-slug`** = the `<task-slug>` in the filename `N_<task-slug>.plan.md` (omit the numeric prefix).
+
+Do the implementation for that task on that branch; open PRs from **`spec_name/task-slug`** unless the user records a waiver and reason in the plan.
+
+## Inter-task dependencies (detect and validate)
+
+Each plan’s YAML frontmatter **must** include:
+
+- **`git_branch`** — `spec_name/task-slug` (matches convention above).
+- **`task_slug`** — same as the filename’s `<task-slug>`.
+- **`depends_on_tasks`** — list of **task slugs** (same spec) that must **merge before** this task (use `[]` if none).
+- **`blocks_tasks`** (optional) — slugs that should wait until this lands.
+
+**Whenever** you create, edit, or review **one or more** `tasks/*.plan.md` under the same spec:
+
+1. **Dependency graph:** nodes = `task-slug`; for each plan, add edges **`dep` → `task`** for every `dep` in `depends_on_tasks` (meaning `spec_name/dep` must merge before `spec_name/task`).
+2. **Orphan check:** every entry in every `depends_on_tasks` must match some **`M_<slug>.plan.md`** in that `tasks/` folder.
+3. **Cycle check:** if there is a directed cycle, **report it** and require fixing `depends_on_tasks` (or merge/split plans) before coding.
+4. **Numeric prefix vs graph:** if `2_foo.plan.md` depends on `bar` and `1_bar.plan.md` exists, that matches usual order; if **`1_*` depends on a slug only in `2_*`**, **warn**—either renumber files or justify in **Notes** (true parallel work may rebase/stack PRs).
+
+## Rules
+
+1. **Do not start implementation** without **`DESIGN.md`** and **`REQUIREMENTS.md`** at least in **Draft**, and at least one **`tasks/N_*.plan.md`** when execution is split (or explicitly waived with owner + reason).
+2. **Creation order is fixed:** **`DESIGN.md` → `REQUIREMENTS.md` → `tasks/*.plan.md`**. Never author **REQUIREMENTS** before **DESIGN** unless the user waives with owner + reason.
+3. **Plans** — each `tasks/*.plan.md` must include: **Git branch** section; frontmatter **`git_branch`**, **`task_slug`**, **`depends_on_tasks`**; **Inter-task dependencies** table; **Goal**; **Definition of done**; **Steps** (`- [ ]`); **Other dependencies**; **Out of scope**. After changing multiple plans, **re-run** graph validation.
+4. **Naming:** `<task-slug>` is **kebab-case** or **snake_case**; **`git_branch`** uses the **same** slug after `spec_name/`.
+5. When behavior changes mid-flight, update **`DESIGN.md`** (if approach changes), then **`REQUIREMENTS.md`** (EARS), then **task** steps and **`depends_on_tasks`** — do not only change code.
+
+## Checklist before marking a spec “ready to build”
+
+- [ ] `DESIGN.md` names boundaries, storage, and failure/rollback at a useful level.
+- [ ] `REQUIREMENTS.md` uses **EARS** for behavioral SHALLs where applicable and has traceability to verification.
+- [ ] At least one **`tasks/N_*.plan.md`** exists with **all** steps actionable and ordered.
+- [ ] Every task plan declares **`git_branch`** = `spec_name/task-slug` consistent with its filename; **`depends_on_tasks`** validated (no orphans, no cycles).
+- [ ] Links to **`PRODUCT.md`** / **`TECH.md`** / ADRs if decisions are non-obvious.
+
+## Missing required files — mandatory protocol
+
+When starting **non-trivial** work under **`spec/<spec_name>/`**, **detect** (read directory or ask the path):
+
+1. `DESIGN.md`
+2. `REQUIREMENTS.md`
+3. At least one `tasks/N_<task>.plan.md`
+
+**Do not write implementation code** until **`DESIGN.md`** and **`REQUIREMENTS.md`** exist at least as **Draft**, unless the user **explicitly waives** with **owner + short reason** in chat or a task note.
+
+### When something is missing
+
+1. **List what is missing** and state the **creation order:** **`DESIGN.md` → `REQUIREMENTS.md` → `tasks/1_<task>.plan.md` → `tasks/2_<task>.plan.md` → …**
+2. **Ask:** “Do you want me to create the missing spec artifacts? I’ll follow that order and only move on after each step is done.”
+3. If **no**, **stop**; offer questions-only help if they ask.
+4. If **yes**, create **only the next artifact**. Ask the **phase questions** below; use thread context when already answered.
+
+### Phase A — `DESIGN.md` (first)
+
+Ask:
+
+- **`spec_name`** (kebab-case folder under `spec/`)?
+- **Components / paths** per **`STRUCTURE.md`**?
+- **Data** (entities, migrations, caches)?
+- **APIs / events / jobs** (boundaries, idempotency, auth)?
+- **Failure & recovery** (rollback, errors, retries)?
+- **Decisions** needing ADRs?
+
+Then create **`spec/<spec_name>/DESIGN.md`** from `spec/_template/DESIGN.md`. **Do not** create `REQUIREMENTS.md` or **`tasks/`** in the same turn unless design is done and the user confirms the next phase.
+
+### Phase B — `REQUIREMENTS.md` (second; after `DESIGN.md` exists)
+
+Ask:
+
+- Which behaviors need **Ubiquitous** vs **Event-driven** vs **State-driven** vs **Optional** vs **Unwanted** EARS patterns?
+- **System / feature name** for “The `<system>` shall …” clauses?
+- **Triggers**, **preconditions**, and **measurable responses** per requirement?
+- **In scope / out of scope** and link to **`PRODUCT.md`**?
+
+Then create **`spec/<spec_name>/REQUIREMENTS.md`** from `spec/_template/REQUIREMENTS.md` (EARS sections). **Do not** create **`tasks/*.plan.md`** until requirements are drafted and the user confirms.
+
+### Phase C — `tasks/N_<task>.plan.md` (third+; after DESIGN and REQUIREMENTS exist)
+
+Ensure **`spec/<spec_name>/tasks/`** exists. For each plan **in numeric order** (`1_`, `2_`, …):
+
+Ask:
+
+- **Slug** for `N_<task>.plan.md` (becomes **`git_branch`** `spec_name/<slug>`)?
+- Which **other task slugs** in this spec must merge **first**? (→ `depends_on_tasks`; then run **dependency validation** across all plans in `tasks/`.)
+- **Goal**, **definition of done**, **concrete steps** (`- [ ]`)?
+- **Other dependencies** (env, flags, tickets)?
+- **Out of scope** for this task only?
+
+Create **one** file per iteration from `spec/_template/tasks/1_scaffold.plan.md`. After adding or changing several plans, **re-validate** the inter-task graph (no cycles, no missing slugs).
+
+### Summary rule
+
+**Order:** **`DESIGN.md` → `REQUIREMENTS.md` (EARS where applicable) → `tasks/N_*.plan.md`**. Never skip an earlier artifact except a documented **waiver**.
