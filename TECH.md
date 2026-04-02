@@ -10,8 +10,8 @@ status: DRAFT
 - Language: Python 3.9+ (broad CPython 3.x compatibility; CI exercises lowest supported and latest stable, with optional intermediates)
 - Framework: None (library-first design)
 - Database: 
-  - Source: Amazon Redshift
-  - Destination: Redshift / Postgres-compatible systems
+  - Source: **Amazon Redshift** and **PostgreSQL** (MVP SQL sources)
+  - Destination: **Redshift** and **PostgreSQL** (via dlt’s respective destinations)
 - ORM / query layer:
   - SQLAlchemy (connection abstraction only)
   - optional: redshift_connector / psycopg2
@@ -36,7 +36,7 @@ status: DRAFT
 ---
 
 ### Third-party services
-- dlt (core execution engine)
+- dlt (core execution engine); **PostgreSQL** drivers (e.g. via **`dlt[postgres]`**) and **Redshift** (via **`dlt[redshift]`**) come from optional extras (see **Optional dependencies**)
 - fsspec (filesystem abstraction)
 - boto3 (AWS access)
 
@@ -163,10 +163,11 @@ Environments:
 
 | Extra on `dataloadkit` | Pulls (PEP 508) | Use when |
 |------------------------|-----------------|----------|
-| `redshift` | `dlt[redshift]` | SQL / Redshift-style database sources and destinations |
+| `redshift` | `dlt[redshift]` | **Redshift** SQL sources and destinations |
+| `postgres` | `dlt[postgres]` | **PostgreSQL** SQL sources and destinations ([dlt Postgres](https://dlthub.com/docs/dlt-ecosystem/destinations/postgres)) |
 | `filesystem` | `dlt[filesystem]` | S3 (and other filesystem) sources/destinations via dlt filesystem |
 | `sftp` | `dlt[sftp]` | SFTP URLs with filesystem destination ([paramiko](https://dlthub.com/docs/dlt-ecosystem/destinations/filesystem)) |
-| `mvp` | `dlt[redshift,filesystem,sftp]` | Full **MVP** surface in **`PRODUCT.md`** (recommended default for library consumers) |
+| `mvp` | `dlt[redshift,postgres,filesystem,sftp]` | Full **MVP** surface in **`PRODUCT.md`**—**Redshift + PostgreSQL + S3 + SFTP** (recommended default for library consumers) |
 
 - **Base** runtime dependency: pin **`dlt`** with a floor version only (no brackets in `dependencies`); consumers choose extras, or install **`dataloadkit[mvp]`** for the documented MVP.
 - **Development / CI:** use **`uv sync --extra mvp`** (or `--all-extras` if you want every optional stack resolvable in the lockfile) so tests and examples match MVP scope.

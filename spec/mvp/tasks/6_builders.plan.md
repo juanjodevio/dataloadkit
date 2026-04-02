@@ -58,8 +58,8 @@ Implement the fluent builder layer (`dlk/builders/`) that collects user configur
 ## Steps
 
 - [ ] **Step 1:** Create `dlk/builders/sql_source_builder.py` with `SQLSourceBuilder` class.
-  - Constructor: `connection_string`, `table` (optional), `query` (optional), `credentials` (optional).
-  - Destination methods: `.to_sql(connection_string, dataset, table, ...)`, `.to_s3(bucket_url, ...)`, `.to_sftp(sftp_url, ...)` — each stores a `DestinationConfig` and returns `self`.
+  - Constructor: `connection_string`, `table` (optional), `query` (optional), **`sql_dialect`** (required for SQL source: **`SqlDialect.REDSHIFT`** vs **`POSTGRES`**), `credentials` (optional).
+  - Destination methods: `.to_sql(connection_string, dataset, table, sql_dialect=..., ...)` — **must set `DestinationConfig.sql_dialect`** (**`SqlDialect.REDSHIFT`** vs **`POSTGRES`**) per **`spec/mvp/tasks/5_dlt-adapter.plan.md`**; `.to_s3(bucket_url, ...)`, `.to_sftp(sftp_url, ...)` — each stores a `DestinationConfig` and returns `self`.
   - Modifier methods: `.with_incremental(cursor_field)`, `.with_write_mode(mode)`, `.with_primary_key(keys)`, `.with_format(fmt)` — each stores config and returns `self`.
   - Terminal: `.load()` → validate → `LoadPlan` → `DltAdapter.execute()` → `LoadResult`.
 - [ ] **Step 2:** Create `dlk/builders/s3_source_builder.py` with `S3SourceBuilder` class.

@@ -5,13 +5,13 @@ status: DRAFT
 # Product
 
 ## Summary
-dataloadkit (dlk) is a Python library that simplifies data ingestion by providing a clean, fluent API on top of dlt. **Sources and destinations are dlt-backed:** SQL (Redshift) and S3 inputs map to dlt sources; SQL, S3 (filesystem), and SFTP outputs map to dlt destinations—all behind a consistent, minimal interface.
+dataloadkit (dlk) is a Python library that simplifies data ingestion by providing a clean, fluent API on top of dlt. **Sources and destinations are dlt-backed:** SQL (**Redshift** and **PostgreSQL**) and S3 inputs map to dlt sources; SQL, S3 (filesystem), and SFTP outputs map to dlt destinations—all behind a consistent, minimal interface.
 
 ## Vision
 dataloadkit should become the default Python SDK for data ingestion. It aims to standardize how developers move and load data across systems while leveraging dlt for reliability, scalability, and state management.
 
 ## Problem Statement
-Data engineers frequently need to move data between systems such as Redshift, S3, and remote endpoints like SFTP. Existing tools:
+Data engineers frequently need to move data between systems such as Redshift, PostgreSQL, S3, and remote endpoints like SFTP. Existing tools:
 
 - require deep knowledge of frameworks like dlt
 - are overly complex (Airbyte, Meltano)
@@ -26,7 +26,7 @@ Key problems:
 ## Target Users
 
 ### Primary User
-Data engineers working with Redshift and S3 who need to build ingestion pipelines quickly using Python.
+Data engineers working with Redshift, PostgreSQL, and S3 who need to build ingestion pipelines quickly using Python.
 
 ### Secondary User
 - Backend engineers handling data workflows
@@ -38,7 +38,7 @@ Data engineers working with Redshift and S3 who need to build ingestion pipeline
 - Python-first engineering teams
 
 ## MVP Goal
-Allow a developer to load data from SQL (Redshift) or S3 into SQL, S3, or SFTP targets using a simple, fluent Python API where **every source and every destination is implemented through dlt** (dlt sources and dlt destinations), not custom extractors or writers beside dlt.
+Allow a developer to load data from SQL (**Redshift** or **PostgreSQL**) or S3 into SQL (**Redshift** or **PostgreSQL**), S3, or SFTP targets using a simple, fluent Python API where **every source and every destination is implemented through dlt** (dlt sources and dlt destinations), not custom extractors or writers beside dlt.
 
 ## Core Value Proposition
 - Reduce ingestion complexity to a few lines of code
@@ -48,10 +48,10 @@ Allow a developer to load data from SQL (Redshift) or S3 into SQL, S3, or SFTP t
 
 ## MVP Scope
 
-### Domain 1: SQL Source (Redshift, dlt-backed)
-- Load from Redshift tables or queries
+### Domain 1: SQL Source (Redshift & PostgreSQL, dlt-backed)
+- Load from **Redshift** or **PostgreSQL** tables or queries (caller selects SQL engine via config; dlt `sql_database` / engine-appropriate wiring)
 - Support incremental loading via cursor
-- Support append, replace, merge semantics
+- Support append, replace, merge semantics (as surfaced through dlt for the chosen source)
 
 ### Domain 2: S3 Source (dlt-backed)
 - Load files from S3 paths
@@ -65,7 +65,7 @@ Allow a developer to load data from SQL (Redshift) or S3 into SQL, S3, or SFTP t
 ### Domain 3: Destinations (dlt-backed)
 
 #### SQL Destination
-- Load into Redshift/Postgres-compatible systems
+- Load into **Redshift** or **PostgreSQL** via dlt’s **`redshift`** vs **`postgres`** destinations (explicit per-target choice—see data model)
 - Support dataset and table naming
 - Support append, replace, merge
 
@@ -112,7 +112,7 @@ Allow a developer to load data from SQL (Redshift) or S3 into SQL, S3, or SFTP t
   - SFTP credentials (password or key via filesystem config)
 
 ### Domain 1: SQL Source
-- Map to dlt SQL/database source patterns (Redshift-compatible)
+- Map to dlt SQL/database source patterns for **Redshift** and **PostgreSQL** (engine selected via **`SourceConfig`** / `sql_dialect`)
 - Accept table or query input
 - Support incremental loading via cursor field
 - Support chunked reads for large datasets
@@ -128,7 +128,7 @@ Allow a developer to load data from SQL (Redshift) or S3 into SQL, S3, or SFTP t
 ### Domain 3: Destinations
 
 #### SQL
-- Map to dlt database destinations
+- Map to dlt **`redshift`** or **`postgres`** destination per **`DestinationConfig.sql_dialect`**
 - Support dataset and table naming
 - Support write modes: append, replace, merge
 
@@ -163,8 +163,8 @@ Not applicable for MVP.
 ## Data Model Overview
 Implement as **stdlib `dataclasses`** with validation in `core/` (see **`TECH.md`**).
 
-- SourceConfig (SQL, S3)—each resolves to a dlt source
-- DestinationConfig (SQL, S3, SFTP)—each resolves to a dlt destination
+- SourceConfig (SQL, S3)—each resolves to a dlt source; **SQL** sources carry **`sql_dialect`** (**Redshift** vs **PostgreSQL**) for correct dlt source wiring
+- DestinationConfig (SQL, S3, SFTP)—each resolves to a dlt destination; **SQL** targets carry **`sql_dialect`** so the adapter selects **`dlt.destinations.redshift`** vs **`dlt.destinations.postgres`**
 - ExtractConfig
 - LoadConfig
 - LoadPlan
@@ -210,9 +210,9 @@ dataloadkit (dlk) is the easiest way to load data using Python.
 It provides a clean, fluent API for ingestion powered by dlt, inspired by awswrangler.
 
 ## MVP Release Standard
-- SQL → SQL works end-to-end
+- SQL → SQL works end-to-end (**Redshift** and **PostgreSQL** paths, including **Postgres → Postgres**)
 - SQL → S3 works end-to-end
-- S3 → SQL works end-to-end
+- S3 → SQL works end-to-end (to **Redshift** or **PostgreSQL** per config)
 - SQL/S3 → SFTP works end-to-end
 - Clear documentation and examples
 - Robust and actionable error handling
@@ -225,4 +225,4 @@ It provides a clean, fluent API for ingestion powered by dlt, inspired by awswra
 - For S3 reads, use dlt’s filesystem readers for **CSV, Parquet, and JSONL**; for **JSON** documents, use **stdlib `json`** only to normalize to **JSONL**, then the same dlt **JSONL** path—no custom extract engine or non-dlt loaders
 - Optimize for developer experience over flexibility
 - **Runtime:** target **CPython 3.9+**; full matrix, dependencies, and dev tooling live in **`TECH.md`**
-- **Packaging:** expose dlt’s optional stacks as **`dataloadkit`** optional extras (`redshift`, `filesystem`, `sftp`, bundled **`mvp`**) per **`TECH.md`**; document **`pip install dataloadkit[mvp]`** (or `uv add 'dataloadkit[mvp]'`) for the full MVP install
+- **Packaging:** expose dlt’s optional stacks as **`dataloadkit`** optional extras (`redshift`, **`postgres`**, `filesystem`, `sftp`, bundled **`mvp`**) per **`TECH.md`**; document **`pip install dataloadkit[mvp]`** (or `uv add 'dataloadkit[mvp]'`) for the full MVP install (**includes PostgreSQL**)

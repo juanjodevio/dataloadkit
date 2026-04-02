@@ -5,16 +5,16 @@ status: DRAFT
 # Requirements
 
 ## Purpose
-Define the functional and non-functional requirements for dataloadkit (dlk) MVP, a Python library that enables simple and consistent data ingestion from SQL (Redshift-compatible) and S3 into SQL, S3, and SFTP destinations using a fluent API where **sources and destinations are dlt-backed** (see **`PRODUCT.md`**, **`spec/mvp/DESIGN.md`**).
+Define the functional and non-functional requirements for dataloadkit (dlk) MVP, a Python library that enables simple and consistent data ingestion from SQL (**Redshift** and **PostgreSQL**) and S3 into SQL (**Redshift** and **PostgreSQL**), S3, and SFTP destinations using a fluent API where **sources and destinations are dlt-backed** (see **`PRODUCT.md`**, **`spec/mvp/DESIGN.md`**).
 
 ---
 
 ## Scope
 Included:
 
-- SQL (Redshift) as source
+- SQL (**Redshift** and **PostgreSQL**) as source
 - S3 as source
-- SQL as destination
+- SQL (**Redshift** and **PostgreSQL**) as destination
 - S3 (filesystem) as destination
 - SFTP (filesystem via dlt) as destination
 - Fluent Python API (`dlk.from_*().to_*().load()`)
@@ -41,7 +41,7 @@ Included:
 
 - Data Engineer (primary)
 - Backend Engineer (secondary)
-- External systems (SQL DB, S3, SFTP server, dlt runtime)
+- External systems (Redshift, PostgreSQL, S3, SFTP server, dlt runtime)
 
 ---
 
@@ -65,8 +65,8 @@ Included:
 - The system shall execute **all extraction and loading** through dlt (dlt sources and dlt destinations; no parallel extract/load engine).
 - The system shall validate required configuration before execution.
 - The system shall return a structured `LoadResult` after execution.
-- The system shall support SQL (Redshift / Postgres-compatible) and S3 as sources, each mapped to dlt source patterns.
-- The system shall support SQL, S3 (filesystem), and SFTP (filesystem via dlt/fsspec) as destinations, each mapped to dlt destination patterns.
+- The system shall support SQL (**Redshift** and **PostgreSQL**) and S3 as sources, each mapped to dlt source patterns with an explicit **SQL engine** selection on **`SourceConfig`**.
+- The system shall support SQL (**Redshift** and **PostgreSQL** via dlt **`redshift`** vs **`postgres`** destinations), S3 (filesystem), and SFTP (filesystem via dlt/fsspec) as destinations, each mapped to dlt destination patterns with an explicit **SQL engine** on **`DestinationConfig`** where applicable.
 - The system shall support **JSON** S3 inputs only through **JSON→JSONL** normalization (stdlib `json`) before dlt’s JSONL reader, as specified in **`PRODUCT.md`** and **`spec/mvp/DESIGN.md`**.
 
 ---
@@ -74,9 +74,9 @@ Included:
 ### Event-Driven Requirements
 
 - When a user calls `.load()`, the system shall validate the configuration and execute the pipeline.
-- When a SQL source is defined, the system shall extract data via dlt using the provided query or table.
+- When a SQL source is defined, the system shall extract data via dlt using the provided query or table and the configured **Redshift** vs **PostgreSQL** source wiring.
 - When an S3 source is defined, the system shall read files via dlt from the provided path(s), including glob patterns when configured.
-- When a destination is defined, the system shall route data to the appropriate dlt destination (database or filesystem).
+- When a destination is defined, the system shall route data to the appropriate dlt destination (**`redshift`**, **`postgres`**, or filesystem as configured).
 - When execution completes, the system shall return execution metadata.
 - When execution fails, the system shall raise a meaningful error.
 
@@ -143,9 +143,9 @@ Included:
 ### Public API (illustrative)
 
 ```python
-dlk.from_sql(...)
+dlk.from_sql(..., sql_dialect=...)  # Redshift vs PostgreSQL (source)
 dlk.from_s3(...)
-.to_sql(...)
+.to_sql(..., sql_dialect=...)  # Redshift vs PostgreSQL (SQL destination)
 .to_s3(...)
 .to_sftp(...)
 .with_incremental(...)
@@ -205,9 +205,9 @@ dlk.from_s3(...)
 
 Aligned with **`PRODUCT.md`** MVP release standard:
 
-- A user can load data from SQL to SQL.
+- A user can load data from SQL to SQL (**Postgres → Postgres** and **Redshift → Redshift** paths demonstrably work).
 - A user can load data from SQL to S3.
-- A user can load data from S3 to SQL.
+- A user can load data from S3 to SQL (**PostgreSQL** and **Redshift** targets per config).
 - A user can load data from SQL or S3 to SFTP.
 - A user can configure incremental loading (SQL).
 - A user can configure write modes (append, replace, merge).

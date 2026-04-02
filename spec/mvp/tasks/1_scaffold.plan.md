@@ -32,7 +32,7 @@ Set up the repository skeleton so every subsequent task has a working package, d
 
 ## Definition of done
 
-- [ ] `pyproject.toml` exists with project metadata, `requires-python = ">=3.9"`, hatchling build backend, base runtime **`dlt>=…`** (version floor only, no `[]` on the base line), **`[project.optional-dependencies]`** mirroring dlt (see **`TECH.md`**): `redshift` → `dlt[redshift]`, `filesystem` → `dlt[filesystem]`, `sftp` → `dlt[sftp]`, **`mvp`** → `dlt[redshift,filesystem,sftp]`; dev **dependency group** (or legacy dev deps): ruff, mypy, pytest.
+- [ ] `pyproject.toml` exists with project metadata, `requires-python = ">=3.9"`, hatchling build backend, base runtime **`dlt>=…`** (version floor only, no `[]` on the base line), **`[project.optional-dependencies]`** mirroring dlt (see **`TECH.md`**): `redshift` → `dlt[redshift]`, **`postgres` → `dlt[postgres]`**, `filesystem` → `dlt[filesystem]`, `sftp` → `dlt[sftp]`, **`mvp`** → **`dlt[redshift,postgres,filesystem,sftp]`**; dev **dependency group** (or legacy dev deps): ruff, mypy, pytest.
 - [ ] `uv.lock` committed and `uv sync` succeeds.
 - [ ] `dlk/` package exists with `__init__.py` (can be nearly empty; exports version).
 - [ ] Sub-packages exist as empty `__init__.py` stubs: `api/`, `builders/`, `core/`, `adapters/`, `connectors/`, `results/`, `utils/`.
@@ -60,7 +60,7 @@ No upstream dependencies — this is the first task.
 
 ## Steps
 
-- [ ] **Step 1:** Create `pyproject.toml` — project name `dataloadkit`, version `0.1.0`, `requires-python = ">=3.9"`, hatchling build backend; **`dependencies`:** `dlt>=<floor>` only; **`[project.optional-dependencies]`:** `redshift = ["dlt[redshift]"]`, `filesystem = ["dlt[filesystem]"]`, `sftp = ["dlt[sftp]"]` ([SFTP / paramiko](https://dlthub.com/docs/dlt-ecosystem/destinations/filesystem)), `mvp = ["dlt[redshift,filesystem,sftp]"]`; dev tools via **`[dependency-groups]`** `dev` = `ruff`, `mypy`, `pytest` (or equivalent per uv docs).
+- [ ] **Step 1:** Create `pyproject.toml` — project name `dataloadkit`, version `0.1.0`, `requires-python = ">=3.9"`, hatchling build backend; **`dependencies`:** `dlt>=<floor>` only; **`[project.optional-dependencies]`:** `redshift = ["dlt[redshift]"]`, **`postgres = ["dlt[postgres]"]`** ([dlt Postgres](https://dlthub.com/docs/dlt-ecosystem/destinations/postgres)), `filesystem = ["dlt[filesystem]"]`, `sftp = ["dlt[sftp]"]` ([SFTP / paramiko](https://dlthub.com/docs/dlt-ecosystem/destinations/filesystem)), **`mvp = ["dlt[redshift,postgres,filesystem,sftp]"]`**; dev tools via **`[dependency-groups]`** `dev` = `ruff`, `mypy`, `pytest` (or equivalent per uv docs).
 - [ ] **Step 2:** Run **`uv lock --extra mvp`** then **`uv sync --extra mvp --group dev`** (or project’s chosen groups) so the lockfile and local env include the full MVP dlt stack; document that bare `uv sync` without extras only installs base `dlt`.
 - [ ] **Step 3:** Create `dlk/__init__.py` with `__version__ = "0.1.0"`.
 - [ ] **Step 4:** Create empty sub-package stubs: `dlk/api/__init__.py`, `dlk/builders/__init__.py`, `dlk/core/__init__.py`, `dlk/adapters/__init__.py`, `dlk/connectors/__init__.py`, `dlk/results/__init__.py`, `dlk/utils/__init__.py`.
@@ -101,6 +101,6 @@ No upstream dependencies — this is the first task.
 
 ## Notes
 
-- **`mvp`** extra bundles **`dlt[redshift,filesystem,sftp]`**; consumers needing only part of MVP can install **`dataloadkit[redshift]`**, **`[filesystem]`**, **`[sftp]`** in any combination (pip/uv union extras on `dlt`). Omitting **`sftp`** when using SFTP URLs breaks **`to_sftp`** (no paramiko).
+- **`mvp`** extra bundles **`dlt[redshift,postgres,filesystem,sftp]`** (MVP **PostgreSQL** requires **`postgres`**); consumers can install **`dataloadkit[redshift]`**, **`[postgres]`**, **`[filesystem]`**, **`[sftp]`** in any combination (pip/uv union extras on `dlt`). Omitting **`postgres`** breaks **PostgreSQL** SQL sources/destinations; omitting **`sftp`** when using SFTP URLs breaks **`to_sftp`** (no paramiko).
 - Align naming and tables with **`TECH.md`** → **Optional dependencies (dlt extras)**.
 - Do not pin dlt to a narrow range yet — use `>=` with a reasonable floor based on current stable.

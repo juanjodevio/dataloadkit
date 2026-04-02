@@ -33,7 +33,7 @@ Expose the stable, user-facing entry points `dlk.from_sql(...)` and `dlk.from_s3
 ## Definition of done
 
 - [ ] `dlk/api/entrypoints.py` (or similar) defines `from_sql(...)` and `from_s3(...)` functions that return the appropriate builder.
-- [ ] `from_sql` accepts at minimum: `connection_string`, `table` (optional), `query` (optional), `credentials` (optional).
+- [ ] `from_sql` accepts at minimum: `connection_string`, **`sql_dialect`** (**Redshift** vs **PostgreSQL**), `table` (optional), `query` (optional), `credentials` (optional).
 - [ ] `from_s3` accepts at minimum: `path`, `file_format` (optional), `credentials` (optional).
 - [ ] `dlk/__init__.py` re-exports `from_sql` and `from_s3` so `import dlk; dlk.from_sql(...)` works.
 - [ ] Docstrings on public functions with clear parameter descriptions.
@@ -57,7 +57,7 @@ Expose the stable, user-facing entry points `dlk.from_sql(...)` and `dlk.from_s3
 
 ## Steps
 
-- [ ] **Step 1:** Create `dlk/api/entrypoints.py` — `from_sql(...)` instantiates and returns `SQLSourceBuilder`; `from_s3(...)` instantiates and returns `S3SourceBuilder`.
+- [ ] **Step 1:** Create `dlk/api/entrypoints.py` — `from_sql(..., sql_dialect=...)` forwards **`sql_dialect`** into `SQLSourceBuilder`; `from_s3(...)` instantiates and returns `S3SourceBuilder`.
 - [ ] **Step 2:** Add clear docstrings with parameter types and short usage example in each function.
 - [ ] **Step 3:** Export from `dlk/api/__init__.py`.
 - [ ] **Step 4:** Update `dlk/__init__.py` — re-export `from_sql`, `from_s3`, `__version__`, and key types (`LoadResult`) for convenience.

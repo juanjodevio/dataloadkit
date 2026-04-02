@@ -83,7 +83,7 @@ Owns:
 Source-specific **wiring** into dlt (not a parallel extractor). Aligns with PRODUCT: SQL and S3 sources are dlt-backed.
 
 Owns:
-- helpers to express Redshift/SQL table-or-query inputs as dlt source/resource material the adapter runs
+- helpers to express **Redshift** / **PostgreSQL** table-or-query inputs as dlt source/resource material the adapter runs
 - helpers to express S3 path/glob inputs as dlt filesystem-oriented source material the adapter runs
 
 Note:

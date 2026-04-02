@@ -5,12 +5,12 @@ status: DRAFT
 # Design
 
 ## Goal
-Design a minimal, fluent, and consistent Python API for `dataloadkit` (`dlk`) that allows developers to load data from SQL (Redshift) and S3 into SQL, S3, and SFTP destinations through a single dlt-backed execution path.
+Design a minimal, fluent, and consistent Python API for `dataloadkit` (`dlk`) that allows developers to load data from SQL (**Redshift** and **PostgreSQL**) and S3 into SQL (**Redshift** and **PostgreSQL**), S3, and SFTP destinations through a single dlt-backed execution path.
 
 ## Context
 This feature is needed now to establish the first implementation-ready design for the MVP.
 
-The product goal is to simplify common ingestion workflows that today require direct dlt knowledge and repetitive boilerplate. The current gap is not capability in dlt itself, but usability: developers need a smaller and more approachable API that covers common Redshift and S3-centric workflows without exposing dlt concepts too early.
+The product goal is to simplify common ingestion workflows that today require direct dlt knowledge and repetitive boilerplate. The current gap is not capability in dlt itself, but usability: developers need a smaller and more approachable API that covers common **Redshift**, **PostgreSQL**, and S3-centric workflows without exposing dlt concepts too early.
 
 This design addresses:
 - repetitive ingestion code across projects
@@ -20,8 +20,8 @@ This design addresses:
 
 ## Scope Summary
 In scope:
-- source builders for SQL and S3
-- destination builders for SQL, S3, and SFTP
+- source builders for SQL (**Redshift** & **PostgreSQL**) and S3
+- destination builders for SQL (**Redshift** & **PostgreSQL**), S3, and SFTP
 - one fluent public API
 - one internal execution model based on dlt
 - a normalized `LoadPlan` that captures source, extraction, and destination config
@@ -65,7 +65,7 @@ The solution is a layered Python library with a small public API and a single in
 - **`api/`** — `from_sql`, `from_s3`, and stable entrypoints that delegate to builders.
 - **`builders/`** — `SQLSourceBuilder`, `S3SourceBuilder`, destination chaining (`to_sql`, `to_s3`, `to_sftp`), and modifiers (`with_incremental`, `with_write_mode`, `with_primary_key`, `with_format`, etc.).
 - **`core/`** — `LoadPlan` and dataclass configs: `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`; validation before planning completes.
-- **`connectors/`** — thin SQL/S3 → dlt source/resource wiring from `SourceConfig` (no extract outside dlt; used by the adapter).
+- **`connectors/`** — thin SQL (**Redshift** / **PostgreSQL**) / S3 → dlt source/resource wiring from `SourceConfig` (no extract outside dlt; used by the adapter).
 - **`adapters/`** — `DltAdapter` only: maps `LoadPlan` to dlt pipeline + sources + destinations and runs execution.
 - **`results/`** — `LoadResult` and helpers (normalized run metadata for callers).
 - **`utils/`** — format detection, paths/globs, schema/credential helpers, and **JSON→JSONL normalization** (stdlib `json` only) shared by builders and the adapter.

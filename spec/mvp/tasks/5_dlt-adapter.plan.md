@@ -35,7 +35,7 @@ Implement `DltAdapter` in `dlk/adapters/` — the single execution engine that r
 - [ ] `dlk/adapters/dlt_adapter.py` exists with a class or function (e.g. `DltAdapter.execute(plan: LoadPlan) -> LoadResult`).
 - [ ] Adapter uses `dlk/connectors/sql.py` for SQL sources and `dlk/connectors/s3.py` for S3 sources.
 - [ ] For S3 sources with file format **JSON** (per `SourceConfig` / inference), adapter reads object bytes (via fsspec/S3 or path the connector expects), runs `dlk.utils.json_to_jsonl`, then wires **JSONL** into dlt (per **`spec/mvp/DESIGN.md`**); **JSONL** and other formats skip preprocessing.
-- [ ] Adapter maps `DestinationConfig` to the correct dlt destination: SQL (database), S3 (filesystem), SFTP (filesystem with SFTP protocol).
+- [ ] Adapter maps `DestinationConfig` to the correct dlt destination: **SQL** → **`dlt.destinations.redshift`** or **`dlt.destinations.postgres`** based on configured SQL backend (see **`DestinationConfig.sql_dialect`** from **`core-models`**), never defaulting everything to Postgres when the target is **Redshift**; **S3** → filesystem; **SFTP** → filesystem + `sftp://`.
 - [ ] Adapter maps `LoadConfig.write_mode` to dlt write disposition (append, replace, merge).
 - [ ] Adapter passes credentials through to dlt without persisting or logging them.
 - [ ] Adapter converts dlt execution output into `LoadResult` (success, row count, timing, error).
@@ -63,9 +63,13 @@ Implement `DltAdapter` in `dlk/adapters/` — the single execution engine that r
 ## Steps
 
 - [ ] **Step 1:** Create `dlk/adapters/dlt_adapter.py` with `DltAdapter` class and `execute(plan: LoadPlan) -> LoadResult` method.
-- [ ] **Step 2:** Implement source resolution: dispatch to `build_sql_source` or `build_s3_source` based on `plan.source_config.source_type`.
+- [ ] **Step 2:** Implement source resolution: dispatch to `build_sql_source` (pass **`SourceConfig.sql_dialect`** for **Redshift** vs **PostgreSQL**) or `build_s3_source` based on `plan.source_config.source_type`.
 - [ ] **Step 2b:** For S3 + **JSON** format, fetch file content (bounded by **`PRODUCT.md`** MVP memory note), call `json_document_to_jsonl`, feed result into the same JSONL-based source path dlt uses for `.jsonl` files (implementation detail: tempfile vs in-memory buffer—document choice).
-- [ ] **Step 3:** Implement destination resolution — map `DestinationType.sql` to `dlt.destinations.postgres` (or Redshift-compatible), `DestinationType.s3` to `dlt.destinations.filesystem` with S3 bucket URL, `DestinationType.sftp` to `dlt.destinations.filesystem` with SFTP URL.
+- [ ] **Step 3:** Implement destination resolution:
+  - **`DestinationType.sql`:** select **`dlt.destinations.redshift`** when **`DestinationConfig.sql_dialect`** is **Redshift** (per **`PRODUCT.md`** primary path); select **`dlt.destinations.postgres`** when **`sql_dialect`** is **Postgres** (or other Postgres-compatible target that must use the postgres destination, not Redshift). Do **not** map all SQL destinations to `postgres`—Redshift has a **dedicated** dlt destination with different behavior and config; wrong choice breaks or weakens **SQL→Redshift** MVP flows.
+  - **`DestinationType.s3`:** `dlt.destinations.filesystem` with S3 bucket URL.
+  - **`DestinationType.sftp`:** `dlt.destinations.filesystem` with SFTP URL.
+  - If **`sql_dialect`** is missing for a SQL destination, fail validation in **`core/`** or adapter with a clear error (no silent default to Postgres).
 - [ ] **Step 4:** Map `LoadConfig.write_mode` → dlt write disposition string (`append`, `replace`, `merge`).
 - [ ] **Step 5:** Compose `dlt.pipeline(...)` with pipeline name from `LoadPlan`, destination, and dataset name from `DestinationConfig`.
 - [ ] **Step 6:** Run pipeline with the source resource; capture dlt load info.
@@ -73,12 +77,12 @@ Implement `DltAdapter` in `dlk/adapters/` — the single execution engine that r
 - [ ] **Step 8:** Wrap dlt exceptions with contextual error messages; ensure no credential leakage in error output.
 - [ ] **Step 9:** Add stdlib `logging` calls at key points (plan received, pipeline started, execution complete/failed).
 - [ ] **Step 10:** Export from `dlk/adapters/__init__.py`.
-- [ ] **Step 11:** Add unit tests in `tests/adapters/test_dlt_adapter.py` — mock `dlt.pipeline`, connectors; verify: SQL source dispatch, S3 source dispatch (csv/jsonl/parquet/json), each destination type, each write mode, error wrapping, LoadResult population, JSON preprocessing invoked when format is JSON.
+- [ ] **Step 11:** Add unit tests in `tests/adapters/test_dlt_adapter.py` — mock `dlt.pipeline`, connectors; verify: SQL source dispatch, S3 source dispatch (csv/jsonl/parquet/json), **SQL destination dispatches to redshift vs postgres according to `DestinationConfig.sql_dialect`**, S3/SFTP filesystem destinations, each write mode, error wrapping, LoadResult population, JSON preprocessing invoked when format is JSON.
 - [ ] **Step 12:** Verify: `uv run ruff check`, `uv run mypy dlk`, `uv run pytest`.
 
 ## Other dependencies
 
-- **Requires:** Environment installs **`dataloadkit[mvp]`** (or the matching subset of **`dataloadkit[redshift,filesystem,sftp]`**) per **`TECH.md`** optional extras.
+- **Requires:** Environment installs **`dataloadkit[mvp]`** (or the matching subset of **`dataloadkit[redshift,postgres,filesystem,sftp]`**) per **`TECH.md`** optional extras.
 - **External:** No live infra needed for unit tests (mock dlt).
 
 ## Affected files / modules
@@ -99,6 +103,8 @@ Implement `DltAdapter` in `dlk/adapters/` — the single execution engine that r
 
 ## Notes
 
+- Follow current **dlt** docs for **`redshift`** vs **`postgres`** destination APIs (credentials, staging, merge)—they are not interchangeable; **`dataloadkit[mvp]`** includes both **`[redshift]`** and **`[postgres]`** stacks per **`TECH.md`**.
+- **`builders/`** must set **`SourceConfig.sql_dialect`** on **`from_sql(...)`** and **`DestinationConfig.sql_dialect`** on **`to_sql(...)`** so callers explicitly choose **Redshift** vs **PostgreSQL** on both ends.
 - SFTP destination uses the same `dlt.destinations.filesystem` as S3 but with an `sftp://` URL — confirm dlt/fsspec support during implementation.
 - Filesystem destination format (parquet, csv, jsonl) comes from `DestinationConfig.file_format`; pass to dlt's `loader_file_format` parameter.
 - Partitioning support for S3 destination (REQUIREMENTS optional feature) — include the parameter passthrough if dlt supports it simply; otherwise note as follow-up.
