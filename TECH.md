@@ -2,196 +2,186 @@
 status: DRAFT
 ---
 
-# Technology
+# Tech
 
-Replace bracketed placeholders. Remove sections that do not apply. This file captures **technical choices, constraints, and standards** for the repository. Product intent belongs in `PRODUCT.md`; layout and ownership in `STRUCTURE.md`.
-
-## Technical Summary
-
-[One short paragraph: architecture style, runtime model, and priorities—for example developer velocity, reliability, compliance, cost.]
-
-## Decision Principles
-
-- [Principle 1 — e.g. prefer boring, proven defaults for core systems.]
-- [Principle 2 — e.g. optimize for maintainability.]
-- [Principle 3 — e.g. managed services when ops burden is high.]
-- [Principle 4 — e.g. explicit contracts at system boundaries.]
-
-## Stack Baseline
-
-Update the table as you lock choices.
-
-| Area | Standard choice | Version policy | Notes |
-|---|---|---|---|
-| Language(s) | [e.g. TypeScript, Python] | [pin policy] | |
-| Runtime(s) | [e.g. Node.js LTS] | [LTS policy] | |
-| API / backend framework | [e.g. FastAPI, NestJS] | [upgrade cadence] | |
-| Web frontend | [e.g. Next.js, Vite + React] | [policy] | |
-| ORM / data access | [e.g. Prisma, SQLAlchemy] | [policy] | |
-| Database | [e.g. PostgreSQL] | [managed vs self-hosted] | |
-| Auth | [e.g. provider, session model] | [policy] | |
-| Object / file storage | [e.g. S3-compatible] | [policy] | |
-| Async / jobs / queues | [e.g. Edge Functions, SQS, Celery] | [policy] | |
-| IaC | [e.g. Terraform, Pulumi] | [policy] | |
-| Hosting | [e.g. Vercel, k8s, VMs] | [regions, envs] | |
-| CI/CD | [e.g. GitHub Actions] | [required checks] | |
-| Containers | [Docker, Compose — yes/no] | [policy] | |
-
-## Core Technologies (narrative)
+## Core Technologies
 
 ### Backend
+- Language: Python 3.9+ (broad CPython 3.x compatibility; CI exercises lowest supported and latest stable, with optional intermediates)
+- Framework: None (library-first design)
+- Database: 
+  - Source: **Amazon Redshift** and **PostgreSQL** (MVP SQL sources)
+  - Destination: **Redshift** and **PostgreSQL** (via dlt’s respective destinations)
+- ORM / query layer:
+  - SQLAlchemy (connection abstraction only)
+  - optional: redshift_connector / psycopg2
+- Auth:
+  - Environment-based credentials
+  - AWS IAM (preferred)
+  - connection strings for SQL
+- Storage:
+  - Amazon S3 (primary)
+  - SFTP (via dlt filesystem / fsspec)
 
-- [Language, framework, API style.]
-- [Database, migrations tool, ORM.]
-- [AuthN/AuthZ approach.]
-- [Background work: queues, workers, serverless — and what you explicitly do *not* use unless an ADR says otherwise.]
-
-### Frontend
-
-- [Framework, bundler, UI kit.]
-- [Styling, state, data fetching, forms.]
-- [PWA / offline / installable — only if in scope; align with `PRODUCT.md` and `spec/<spec_name>/`.]
+---
 
 ### Infrastructure & DevOps
+- IaC:
+  - Optional future: Terraform for examples
+- CI/CD:
+  - GitHub Actions
+- Containers:
+  - Optional for development and testing
 
-- [IaC, hosting, environments, deploy targets.]
-- [How local dev is run: Compose, devcontainers, etc.]
+---
 
-### AI / External Services (if applicable)
+### Third-party services
+- dlt (core execution engine); **PostgreSQL** drivers (e.g. via **`dlt[postgres]`**) and **Redshift** (via **`dlt[redshift]`**) come from optional extras (see **Optional dependencies**)
+- fsspec (filesystem abstraction)
+- boto3 (AWS access)
 
-- [LLM provider and versioning policy.]
-- [Other APIs: speech, payments, email — pin and document.]
-- [Observability vendors: errors, APM, session replay — with privacy review if needed.]
+---
 
 ## Development Tools
 
-- **Package managers:** [e.g. pnpm, uv, pip]
-- **Lint / format:** [list]
-- **Type checking:** [list]
-- **Testing:** [unit, integration, e2e tools]
-- **API contracts:** [OpenAPI, GraphQL schema, etc.]
+- Python package manager:
+  - uv (lockfile, environments, `uv sync` / `uv run`)
+- Linting / formatting:
+  - ruff (lint + format)
+- Type checking:
+  - mypy
+- Testing:
+  - pytest (e.g. `uv run pytest`)
+- Build / publish:
+  - `uv build` (PEP 517 backend defined in `pyproject.toml`, e.g. hatchling)
+
+---
 
 ## Environment Strategy
 
-- **Local:** [how to run; `.env` from `.env.example`; never commit secrets.]
-- **Staging / production:** [separate projects, secrets, promotion rules.]
-- **Configuration:** [e.g. typed settings server-side; public env vars naming for clients.]
+- Default configuration via environment variables
+- Support explicit configuration overrides in API
+- No internal config persistence
 
-## Development process
+Environments:
+- local: developer machine (.env supported)
+- CI: GitHub Actions environment variables
+- production: user-managed (library consumer responsibility)
 
-- [Branching and PR expectations.]
-- [Infra: plan/review before apply if IaC.]
-- [Migrations: single source of truth — e.g. Alembic only, or vendor migrations only; state the rule once tooling exists.]
-- [UI generation / codegen rules if used — must pass lint and review.]
+---
 
-## Architecture and Boundaries
+## Development Workflow
 
-- **Layering:** [presentation → application → domain → adapters — adjust to your layout in `STRUCTURE.md`.]
-- **Integration rule:** [external systems behind adapters.]
-- **Alignment:** implementation follows `STRUCTURE.md` module boundaries unless an ADR changes them.
+1. Work from `spec/{spec}/tasks/N_<task-slug>.plan.md`; create Git branch `{spec}/{task-slug}` (must match the plan's `git_branch` frontmatter)
+2. Implement feature within module boundaries
+3. Add unit tests
+4. Add integration tests if applicable
+5. Run linting, typing, and tests
+6. Open PR
+7. Merge to main after review
 
-## API and Contract Standards
-
-- **Style:** [REST / GraphQL / RPC]
-- **Documentation source of truth:** [where clients consume schemas]
-- **Errors:** [envelope, codes]
-- **Versioning:** [strategy]
+---
 
 ## Security Baseline
 
-- [Secrets handling.]
-- [AuthZ model and where policies live.]
-- [Encryption in transit / at rest expectations.]
-- [Sensitive data classification — align with `PRODUCT.md`.]
-- [Dependency scanning in CI if used.]
+- Never store credentials in code
+- Avoid logging sensitive information
+- Prefer IAM-based authentication for AWS
+- Support secure SFTP authentication (key-based preferred)
+- Validate external inputs (paths, queries, configs)
+- Ensure dependency updates are monitored
+
+---
 
 ## Observability
 
-- **Logging:** [structured, correlation IDs, redaction.]
-- **Metrics:** [health, golden signals when applicable.]
-- **Tracing:** [when to adopt OpenTelemetry or similar.]
-- **Errors:** [tooling, PII scrubbing.]
+- Logging:
+  - Python standard logging
+  - structured logs where useful
 
-## Reliability and Operational Targets (NFR)
+- Metrics:
+  - expose execution metadata via LoadResult
 
-| Attribute | Target | Measurement | Notes |
-|---|---|---|---|
-| Availability | [e.g. 99.9%] | [where measured] | |
-| P95 latency | […] | […] | |
-| Error rate | […] | […] | |
-| RPO / RTO | […] | […] | |
-| Background jobs | […] | […] | [timeouts, platform limits] |
+- Error handling:
+  - clear, actionable error messages
+  - propagate underlying dlt errors with context
+
+---
 
 ## Technical Constraints
 
-- [Constraint tied to `PRODUCT.md` — e.g. regulatory, tenancy, AI assistive-only.]
-- [Stack constraint: “do not introduce X without ADR.”]
-- [Performance or cost guardrails.]
+- dlt is the only execution engine
+- All data movement must go through dlt pipelines
+- No custom execution engines or transfer logic
+- SFTP must be handled via dlt filesystem destination
+- Library must remain lightweight (no heavy runtime dependencies)
+- Python-only (no multi-language support)
+- Source wiring lives in **`connectors/`** (per `STRUCTURE.md`): translate `SourceConfig` into dlt source/resource material; **`adapters/`** owns execution and composes connectors + dlt—no second extract path
+
+---
 
 ## Coding Preferences
 
-- [Language-specific conventions.]
-- [Avoid `any` at boundaries; public APIs typed.]
-- [Feature behavior defined in `PRODUCT.md` and `spec/<spec_name>/`, not only in comments.]
+- Use type hints everywhere
+- **Config and plan models:** use **`dataclasses`** (stdlib) for `SourceConfig`, `DestinationConfig`, `LoadPlan`, and related types; keep validation explicit in `core/` (no Pydantic as a **required** dlk dependency for these models)
+- Favor composition over inheritance
+- Avoid hidden side effects
+- Keep public API minimal and stable
+- Use fluent builder pattern for API
+
+---
 
 ## Testing Expectations
 
-- **Unit:** [scope.]
-- **Integration:** [DB, external sandboxes.]
-- **E2E:** [critical paths when UI exists.]
-- [Same-change rule for tests when logic changes.]
+### Unit Tests
+- Required for all core modules
+- Builders, core models, utilities
 
-## ADRs (Architecture Decision Records)
+### Integration Tests
+- Required for:
+  - SQL → SQL
+  - SQL → S3
+  - S3 → SQL
+  - SQL/S3 → SFTP
 
-Record reversals and big bets (new queue system, new cloud, etc.).
+- Use real or controlled test environments where possible
 
-### ADR Index
+---
 
-| ADR | Status | Decision | Notes |
-|---|---|---|---|
-| ADR-001 | [Proposed / Accepted / Deprecated] | [short title] | [optional] |
+## Deployment Model
 
-### ADR Template
+- Distributed as a Python package via PyPI
+- Installed via pip, uv, or other standards-compliant installers
+- No runtime services or infrastructure required
+- Execution occurs within user environment
 
-```markdown
-# ADR-XXX: [Decision title]
+---
 
-## Status
-Proposed | Accepted | Deprecated | Superseded by ADR-YYY
+## Optional dependencies (dlt extras)
 
-## Context
-[What problem or constraint requires this decision?]
+`dataloadkit` maps **dlt’s optional stacks** to **`[project.optional-dependencies]`** in `pyproject.toml` so installs stay explicit and match dlt’s own extra names:
 
-## Options Considered
-- [Option A]
-- [Option B]
+| Extra on `dataloadkit` | Pulls (PEP 508) | Use when |
+|------------------------|-----------------|----------|
+| `redshift` | `dlt[redshift]` | **Redshift** SQL sources and destinations |
+| `postgres` | `dlt[postgres]` | **PostgreSQL** SQL sources and destinations ([dlt Postgres](https://dlthub.com/docs/dlt-ecosystem/destinations/postgres)) |
+| `filesystem` | `dlt[filesystem]` | S3 (and other filesystem) sources/destinations via dlt filesystem |
+| `sftp` | `dlt[sftp]` | SFTP URLs with filesystem destination ([paramiko](https://dlthub.com/docs/dlt-ecosystem/destinations/filesystem)) |
+| `mvp` | `dlt[redshift,postgres,filesystem,sftp]` | Full **MVP** surface in **`PRODUCT.md`**—**Redshift + PostgreSQL + S3 + SFTP** (recommended default for library consumers) |
 
-## Decision
-[Chosen option and rationale]
+- **Base** runtime dependency: pin **`dlt`** with a floor version only (no brackets in `dependencies`); consumers choose extras, or install **`dataloadkit[mvp]`** for the documented MVP.
+- **Development / CI:** use **`uv sync --extra mvp`** (or `--all-extras` if you want every optional stack resolvable in the lockfile) so tests and examples match MVP scope.
+- Do not duplicate ad-hoc `dlt[...]` strings in docs without pointing to these named extras.
 
-## Consequences
-### Positive
-- [...]
+---
 
-### Negative
-- [...]
+## Notes
 
-### Follow-up Actions
-- [ ] [...]
-```
-
-Store full ADR files under `docs/decisions/` if you use that layout (see `STRUCTURE.md`).
-
-## Open Technical Questions
-
-| # | Question | Owner | Target date |
-|---|---|---|---|
-| 1 | […] | […] | […] |
-
-## Related Documents
-
-- `README.md` — setup, commands, contribution
-- `PRODUCT.md` — product intent, scope, outcomes
-- `STRUCTURE.md` — repository layout, boundaries, ownership
-- `spec/` — per-feature planning (`DESIGN.md` → `REQUIREMENTS.md` with EARS where applicable → `tasks/N_*.plan.md`); Cursor: `@spec`
-- `.cursor/BUGBOT.md` — [Cursor Bugbot](https://cursor.com/docs/bugbot) PR review context (optional; enable Bugbot in the [Cursor dashboard](https://cursor.com/dashboard/integrations))
+- dlt must be isolated within the **adapter** layer; **`connectors/`** only shapes dlt sources from config (see `STRUCTURE.md`) and is invoked from the adapter, not as a parallel runtime
+- filesystem destinations (S3, SFTP) must behave consistently
+- avoid introducing additional abstraction layers unless necessary
+- prioritize developer experience over configurability
+- maintain clear separation between:
+  - configuration
+  - planning
+  - execution

@@ -4,193 +4,225 @@ status: DRAFT
 
 # Product
 
-Replace bracketed placeholders. Remove sections that do not apply. Keep this document at **product intent**; put architecture, repo layout, and stack in `STRUCTURE.md` and `TECH.md`.
-
 ## Summary
-
-[One paragraph: what this is, for whom, primary geography or segment if relevant, and what MVP explicitly targets vs defers.]
-
-**Working product name:** [name]. **Repository / codename (if different):** [folder or internal name]. Align final branding when ready. If the working name could be confused with another product or tool, note that here.
+dataloadkit (dlk) is a Python library that simplifies data ingestion by providing a clean, fluent API on top of dlt. **Sources and destinations are dlt-backed:** SQL (**Redshift** and **PostgreSQL**) and S3 inputs map to dlt sources; SQL, S3 (filesystem), and SFTP outputs map to dlt destinations—all behind a consistent, minimal interface.
 
 ## Vision
-
-[2–4 sentences: the long-term direction—what “winning” looks like without listing every feature.]
+dataloadkit should become the default Python SDK for data ingestion. It aims to standardize how developers move and load data across systems while leveraging dlt for reliability, scalability, and state management.
 
 ## Problem Statement
+Data engineers frequently need to move data between systems such as Redshift, PostgreSQL, S3, and remote endpoints like SFTP. Existing tools:
 
-- [Pain 1 — concrete, observable.]
-- [Pain 2.]
-- [Pain 3.]
+- require deep knowledge of frameworks like dlt
+- are overly complex (Airbyte, Meltano)
+- or lack a simple Python-first interface
 
-[Closing sentence tying pains to why this product should exist.]
+Key problems:
+- High cognitive overhead for simple ingestion tasks
+- Repeated boilerplate across pipelines
+- Inconsistent patterns across sources and destinations
+- Lack of a unified abstraction for ingestion workflows
 
 ## Target Users
 
 ### Primary User
-
-[Who they are, context, constraints.]
+Data engineers working with Redshift, PostgreSQL, and S3 who need to build ingestion pipelines quickly using Python.
 
 ### Secondary User
-
-[Optional — who comes next, not MVP focus if so stated.]
+- Backend engineers handling data workflows
+- Analytics engineers building ingestion scripts
 
 ### Initial Market
-
-[Geography, segment, or go-to-market boundary for MVP.]
+- AWS-based data stacks
+- Startups and mid-size companies
+- Python-first engineering teams
 
 ## MVP Goal
-
-[Single cohesive paragraph: end-to-end outcome a user can achieve in MVP. List 3–7 bullet capabilities if helpful. State experience bar: simple, fast, mobile-friendly, production-oriented — adjust as needed.]
+Allow a developer to load data from SQL (**Redshift** or **PostgreSQL**) or S3 into SQL (**Redshift** or **PostgreSQL**), S3, or SFTP targets using a simple, fluent Python API where **every source and every destination is implemented through dlt** (dlt sources and dlt destinations), not custom extractors or writers beside dlt.
 
 ## Core Value Proposition
-
-**Primary message:** [one line].
-
-**Supporting reasons:** [save time, reduce risk, consolidate tools — what you actually deliver emotionally and practically.]
-
-**Differentiator for MVP:** [one sharp claim you can test, e.g. time-to-value or a measurable user outcome.]
+- Reduce ingestion complexity to a few lines of code
+- Provide a consistent API across sources and destinations
+- Rely on dlt for both extraction and loading (dlt-backed sources and destinations) without exposing dlt’s internal complexity
+- Enable structured data loading into databases and filesystems
 
 ## MVP Scope
 
-Organize by domain or theme. Keep bullets testable.
+### Domain 1: SQL Source (Redshift & PostgreSQL, dlt-backed)
+- Load from **Redshift** or **PostgreSQL** tables or queries (caller selects SQL engine via config; dlt `sql_database` / engine-appropriate wiring)
+- Support incremental loading via cursor
+- Support append, replace, merge semantics (as surfaced through dlt for the chosen source)
 
-### [Area 1 — e.g. Authentication and Profile]
+### Domain 2: S3 Source (dlt-backed)
+- Load files from S3 paths
+- Support **CSV, Parquet, JSONL, and JSON** as S3 inputs:
+  - **CSV, Parquet, JSONL** map directly to dlt’s [filesystem verified source](https://dlthub.com/docs/dlt-ecosystem/verified-sources/filesystem/basic) readers.
+  - **JSON** (`.json` or explicit format): MVP includes a **JSON→JSONL preprocessing** step using **stdlib `json` only**—normalize to newline-delimited JSON objects, then feed **dlt’s JSONL reader** (no second extract/load engine; no custom table extraction).
+- Support glob patterns
+- Infer schema when possible
+- **JSON preprocessing limits (MVP):** the `.json` file must be readable in one pass by **`json.loads`** (whole document in memory); unsupported shapes (e.g. array of scalars, non-object array elements) fail with a clear error; document this limit in user-facing docs
 
-[Capabilities, roles, tenancy rules for MVP.]
+### Domain 3: Destinations (dlt-backed)
 
-### [Area 2 — e.g. Core Domain]
+#### SQL Destination
+- Load into **Redshift** or **PostgreSQL** via dlt’s **`redshift`** vs **`postgres`** destinations (explicit per-target choice—see data model)
+- Support dataset and table naming
+- Support append, replace, merge
 
-[Entities, main actions, status models if any.]
+#### S3 Destination (filesystem via dlt)
+- Write structured datasets using dlt filesystem destination
+- Support Parquet, JSONL, and CSV formats
+- Support partitioning and dataset layout
 
-### [Area 3]
-
-[…]
-
-### Dashboard / Overview (if applicable)
-
-[What “operational” visibility means in MVP — not full BI unless in scope.]
+#### SFTP Destination (filesystem via dlt)
+- Write structured datasets to SFTP using dlt filesystem destination
+- Use SFTP URLs via fsspec-compatible configuration
+- Support Parquet, JSONL, and CSV formats
+- Managed dataset layout consistent with other filesystem destinations
 
 ## Out of Scope
+- SFTP as a source
+- **S3 JSON:** streaming parse of arbitrarily large single `.json` files without loading the document into memory (MVP preprocessing may require a documented size/memory bound)
+- Raw file transfer or sync semantics
+- Real-time or streaming ingestion
+- Complex transformations
+- Multi-source joins
+- Orchestration (Airflow, Step Functions)
+- CLI or UI
+- Full connector ecosystem
 
-[Explicit list for this phase or forever-out items. Reduces scope creep and clarifies roadmap boundaries.]
-
-## User Journey
-
-1. [Step — user perspective, outcome-oriented.]
-2. […]
-3. […]
-4. […]
-5. […]
+## Core User Flow
+1. User imports `dlk`
+2. User defines a source (`from_sql` or `from_s3`)
+3. User defines a destination (`to_sql`, `to_s3`, or `to_sftp`)
+4. User configures optional parameters (incremental, format, write mode)
+5. User calls `.load()`
+6. dlk builds and executes a dlt pipeline
+7. Data is loaded into destination
+8. A result object is returned
 
 ## Functional Requirements
 
-State **acceptance-oriented** requirements that QA can verify. Avoid duplicating **MVP Scope** verbatim—reference domains above and spell out **must** behaviors and constraints. Omit this section if **MVP Scope** is already written as checklist-level, testable bullets.
+### Authentication and Access
+- Support credentials via environment variables
+- Support explicit credentials when needed
+- Support:
+  - SQLAlchemy connections
+  - AWS credentials
+  - SFTP credentials (password or key via filesystem config)
 
-### [Requirement group 1]
+### Domain 1: SQL Source
+- Map to dlt SQL/database source patterns for **Redshift** and **PostgreSQL** (engine selected via **`SourceConfig`** / `sql_dialect`)
+- Accept table or query input
+- Support incremental loading via cursor field
+- Support chunked reads for large datasets
+- Support primary key definition for merge operations
 
-- [ ] [Testable requirement.]
-- [ ] […]
+### Domain 2: S3 Source
+- Map to dlt filesystem or S3-oriented source patterns as appropriate
+- Accept S3 paths and glob patterns
+- Support **CSV, Parquet, JSONL** (native dlt filesystem readers) and **JSON** via **JSON→JSONL preprocessing** then dlt’s JSONL reader
+- Infer format from file extension where unambiguous (e.g. `.csv`, `.jsonl`, `.json`, `.parquet`); **`.json`** triggers preprocessing, **`.jsonl`** does not
+- Support multiple file ingestion per run
 
-### [Requirement group 2]
+### Domain 3: Destinations
 
-- [ ] […]
+#### SQL
+- Map to dlt **`redshift`** or **`postgres`** destination per **`DestinationConfig.sql_dialect`**
+- Support dataset and table naming
+- Support write modes: append, replace, merge
 
-## Degradation and Failure (product-level)
+#### S3
+- Use dlt filesystem destination
+- Support format selection (Parquet, JSONL, CSV)
+- Support partitioning
 
-How the product should behave when things go wrong—without prescribing implementation.
+#### SFTP
+- Use dlt filesystem destination with SFTP protocol
+- Support standard filesystem configuration via URL
+- Support format selection
+- Maintain consistent dataset layout with S3 destination
 
-- **[Dependency or failure mode]:** [e.g. external API down → user can still … / clear retry / no silent data loss.]
-- **[Another case]:** […]
-- **Data integrity:** [e.g. nothing committed as final record of record without explicit user confirmation, if that applies.]
-
-## AI / Automation (if applicable)
-
-### Inputs
-
-[What the system may use — user content, context, metadata.]
-
-### Outputs
-
-[What is produced — drafts, summaries, structured fields.]
-
-### Rules
-
-[Framing: assistive vs authoritative; disallowed claims; regional or professional constraints.]
-
-### Human-in-the-Loop
-
-[Review, edit, approve before persistence or external effect — as applicable.]
+## AI Requirements
+Not applicable for MVP.
 
 ## Security and Privacy Requirements
-
-[PHI, PII, and sensitive health-adjacent data; access control model for MVP; encryption expectations; auditability; retention — at product policy level. Point to `TECH.md` and legal review for implementation detail.]
+- Do not persist credentials internally
+- Avoid logging sensitive data
+- Support IAM-based access for AWS
+- Support secure key-based authentication for SFTP
+- Ensure compatibility with least-privilege setups
 
 ## Product Principles
-
-- [Principle 1 — e.g. speed over breadth for MVP.]
-- [Principle 2.]
-- [Principle 3.]
+- Simplicity over flexibility
+- Opinionated defaults over configuration overload
+- Python-first developer experience
+- Transparent execution over hidden abstractions
+- dlt-native, not dlt-replacement
 
 ## Data Model Overview
+Implement as **stdlib `dataclasses`** with validation in `core/` (see **`TECH.md`**).
 
-[High-level entities and relationships only. Refine in design docs and implementation.]
-
-- **[Entity]:** [one line.]
-- **[Entity]:** […]
+- SourceConfig (SQL, S3)—each resolves to a dlt source; **SQL** sources carry **`sql_dialect`** (**Redshift** vs **PostgreSQL**) for correct dlt source wiring
+- DestinationConfig (SQL, S3, SFTP)—each resolves to a dlt destination; **SQL** targets carry **`sql_dialect`** so the adapter selects **`dlt.destinations.redshift`** vs **`dlt.destinations.postgres`**
+- ExtractConfig
+- LoadConfig
+- LoadPlan
+- LoadResult
 
 ## Success Metrics
-
-[North star or primary outcome if known.] Examples to validate with stakeholders:
-
-- [Metric 1 — definition + why it matters.]
-- [Metric 2.]
-- [Qualitative signal, e.g. interviews or surveys.]
+- Time to first successful load (< 5 minutes)
+- Lines of code required per ingestion
+- Number of successful pipeline executions
+- Developer adoption (GitHub stars, installs)
+- Reuse across projects
 
 ## Risks
 
 ### Product Risks
-
-[Adoption, trust, scope creep.]
+- API may not cover all edge cases
+- Users may expect full ETL capabilities
+- Misunderstanding of structured vs raw file behavior
 
 ### Technical Risks
-
-[Latency, accuracy, integration, scale.]
+- dlt API changes affecting compatibility
+- Memory constraints for large datasets
+- SFTP filesystem performance variability
+- Schema inference inconsistencies
 
 ### Market Risks
-
-[Competitors, substitutes, buying behavior.]
+- Competition from ingestion platforms (Airbyte, Meltano)
+- Users preferring declarative tools over Python APIs
+- Limited distribution initially
 
 ## Future Roadmap Ideas
-
-[Ordered or unordered list — not commitments.]
+- Add SFTP as source
+- Transfer mode (S3 ↔ SFTP)
+- Streaming ingestion
+- CLI interface
+- Connector plugins
+- Observability integrations
+- dbt integration
 
 ## Positioning
+dataloadkit (dlk) is the easiest way to load data using Python.
 
-[One short paragraph for pitch, landing copy, or internal alignment.]
+It provides a clean, fluent API for ingestion powered by dlt, inspired by awswrangler.
 
 ## MVP Release Standard
-
-Pilot- or launch-ready when:
-
-- [Criterion 1 — end-to-end journey.]
-- [Criterion 2 — performance / reliability bar.]
-- [Criterion 3 — safety, privacy, or compliance bar.]
-- [Criterion 4 — no critical misrepresentation of automated or AI output, if applicable.]
+- SQL → SQL works end-to-end (**Redshift** and **PostgreSQL** paths, including **Postgres → Postgres**)
+- SQL → S3 works end-to-end
+- S3 → SQL works end-to-end (to **Redshift** or **PostgreSQL** per config)
+- SQL/S3 → SFTP works end-to-end
+- Clear documentation and examples
+- Robust and actionable error handling
 
 ## Implementation Guidance
-
-[Priorities for engineering and design: what to optimize first; dependency on `STRUCTURE.md` / `TECH.md`; preference for explicit contracts and user-visible disclaimers where relevant. Detailed performance targets, SLOs, and infra-level constraints belong in `TECH.md`.]
-
-## Open Questions
-
-| # | Question | Owner | Target date |
-|---|----------|-------|-------------|
-| 1 | […] | […] | […] |
-| 2 | […] | […] | […] |
-
-## Related Documents
-
-- `README.md` — overview, quickstart, and links to root docs and `spec/`.
-- `STRUCTURE.md` — [repo and module layout when it exists.]
-- `TECH.md` — [stack, ADRs, and non-functional / operational constraints when it exists.]
-- `spec/<spec_name>/` — [per-feature **`DESIGN.md` → `REQUIREMENTS.md` (EARS) → `tasks/N_*.plan.md`** when used; see `spec/README.md`; Cursor: `@spec`]
+- Keep public API minimal and fluent
+- Use a unified LoadPlan abstraction
+- Isolate dlt integration in a single adapter layer
+- Treat **all sources and all destinations** consistently via dlt (no parallel non-dlt extract/load paths for MVP scope)
+- For S3 reads, use dlt’s filesystem readers for **CSV, Parquet, and JSONL**; for **JSON** documents, use **stdlib `json`** only to normalize to **JSONL**, then the same dlt **JSONL** path—no custom extract engine or non-dlt loaders
+- Optimize for developer experience over flexibility
+- **Runtime:** target **CPython 3.9+**; full matrix, dependencies, and dev tooling live in **`TECH.md`**
+- **Packaging:** expose dlt’s optional stacks as **`dataloadkit`** optional extras (`redshift`, **`postgres`**, `filesystem`, `sftp`, bundled **`mvp`**) per **`TECH.md`**; document **`pip install dataloadkit[mvp]`** (or `uv add 'dataloadkit[mvp]'`) for the full MVP install (**includes PostgreSQL**)
