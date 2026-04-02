@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 from dlt.common.libs.sql_alchemy import sa
 from dlt.extract import Incremental
+from sqlalchemy.sql.util import ClauseAdapter
 
 from dlk.core.extract_config import ExtractConfig
 from dlk.core.source_config import SourceConfig
@@ -17,6 +18,9 @@ from dlk.core.types import SourceType, SqlDialect
 _FROM_TABLE_RE = re.compile(
     r"(?is)\bfrom\s+(?:only\s+)?(?P<ident>(?:\"[^\"]+\"|`[^`]+`|[\w.]+))",
 )
+
+# Whole-token match only (avoids classifying ``selective_users`` / ``with_events`` as SQL).
+_SQL_STATEMENT_START = re.compile(r"(?is)\b(SELECT|WITH|VALUES)\b")
 
 
 def _default_engine_kwargs(dialect: SqlDialect) -> dict[str, Any]:
@@ -34,16 +38,20 @@ def _default_engine_kwargs(dialect: SqlDialect) -> dict[str, Any]:
 
 
 def _looks_like_sql_query(table_or_query: str) -> bool:
+    """Treat input as a SQL statement when tokens indicate a query, not a table name.
+
+    Uses word-boundary keyword detection so identifiers like ``selective_users`` stay
+    table-mode. Whitespace, newlines, or ``;`` imply a fragment/statement rather than
+    a single dotted identifier path.
+    """
     t = table_or_query.strip()
     if not t:
         return False
-    head = t.lstrip().upper()
-    if head.startswith(("SELECT", "WITH", "(", "VALUES")):
+    if any(ch in t for ch in "\n;"):
         return True
-    if any(ch in t for ch in "\n\t;"):
+    if "\t" in t or re.search(r"\s", t):
         return True
-    # More than a single bare identifier (e.g. "schema.table" is still table-mode).
-    if " " in t:
+    if _SQL_STATEMENT_START.search(t):
         return True
     return False
 
@@ -72,11 +80,52 @@ def _infer_from_clause_table(sql: str) -> str | None:
     return _strip_sql_ident(m.group("ident"))
 
 
-def _make_query_adapter(sql: str) -> Callable[..., Any]:
+def _merge_user_sql_with_incremental_select(
+    user_sql: str,
+    base_select: Any,
+    table: Any,
+) -> Any:
+    """Wrap ``user_sql`` as a subquery and re-apply WHERE/ORDER/LIMIT from ``base_select``.
+
+    dlt builds ``base_select`` from the reflected table with incremental predicates.
+    Returning bare ``text(user_sql)`` drops those clauses; this keeps them on the outer
+    query over the user's statement.
+    """
+    typed_cols = [sa.column(c.name, c.type) for c in table.columns]
+    inner = sa.text(user_sql).columns(*typed_cols).subquery("dlk_inner")
+    equiv = {c: {inner.c[c.name]} for c in table.columns}
+    clause_adapt = ClauseAdapter(inner, equivalents=equiv)
+
+    projected = [inner.c[c.name] for c in table.columns]
+    out = sa.select(*projected).select_from(inner)
+    if base_select.whereclause is not None:
+        out = out.where(clause_adapt.traverse(base_select.whereclause))
+    ob = getattr(base_select, "_order_by_clause", None)
+    if ob is not None:
+        order_parts = list(ob)
+        if order_parts:
+            out = out.order_by(*[clause_adapt.traverse(x) for x in order_parts])
+    lim = getattr(base_select, "_limit", None)
+    if lim is not None:
+        out = out.limit(lim)
+    return out
+
+
+def _make_query_adapter(sql: str, *, incremental_extract: bool) -> Callable[..., Any]:
     """Return a ``query_adapter_callback`` compatible with dlt (2- or 4-arg forms)."""
 
     def adapter(*args: Any) -> Any:
-        return sa.text(sql)
+        if not incremental_extract:
+            return sa.text(sql)
+        if len(args) < 4:
+            raise RuntimeError(
+                "query_adapter_callback received fewer than 4 arguments; "
+                "cannot preserve incremental SQL filters for custom queries",
+            )
+        base_select, table, incremental, _engine = args[0], args[1], args[2], args[3]
+        if incremental is None:
+            return sa.text(sql)
+        return _merge_user_sql_with_incremental_select(sql, base_select, table)
 
     return adapter
 
@@ -127,9 +176,12 @@ def build_sql_source(
     """Map core SQL source + extract options to dlt ``sql_table`` configuration.
 
     Table mode: ``table_or_query`` is a bare or qualified table name (no SQL keywords).
-    Query mode: ``table_or_query`` is a SQL string; a table is inferred from the first
-    ``FROM`` clause for reflection and incremental cursor validation; the executed query
-    is the full string via ``query_adapter_callback``.
+    Query mode: ``table_or_query`` is a SQL string (detected by statement keywords as whole
+    tokens, not string prefixes); a table is inferred from the first ``FROM`` clause for
+    reflection and incremental cursor validation. The ``query_adapter_callback`` runs the
+    user's SQL; when incremental extraction is enabled it merges dlt's incremental
+    WHERE/ORDER/LIMIT onto a subquery wrapping that SQL instead of replacing the generated
+    select with plain ``text()`` (which would drop incremental filters).
     """
     if source_config.source_type is not SourceType.SQL:
         raise ValueError("build_sql_source requires SourceConfig with source_type sql")
@@ -165,7 +217,10 @@ def build_sql_source(
             primary_key=pk,
             chunk_size=chunk_size,
             defer_table_reflect=False,
-            query_adapter_callback=_make_query_adapter(tq),
+            query_adapter_callback=_make_query_adapter(
+                tq,
+                incremental_extract=extract_config.incremental,
+            ),
             engine_kwargs=engine_kwargs,
             sql_dialect=dialect,
         )

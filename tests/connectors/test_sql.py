@@ -7,6 +7,7 @@ from dlk.connectors.sql import SqlSourceMaterial, build_sql_source
 from dlk.core import ExtractConfig, SourceConfig, SourceType, SqlDialect
 from dlt.common.libs.sql_alchemy import sa
 from dlt.extract import Incremental
+from sqlalchemy import Column, Integer, MetaData, Table, create_engine, select
 
 
 def _sql_src(table_or_query: str, dialect: SqlDialect = SqlDialect.POSTGRES) -> SourceConfig:
@@ -120,3 +121,30 @@ def test_rejects_non_sql_source() -> None:
 def test_query_without_from_raises() -> None:
     with pytest.raises(ValueError, match="FROM clause"):
         build_sql_source(_sql_src("SELECT 1 AS x"), ExtractConfig())
+
+
+def test_table_mode_keywords_inside_identifier_not_query() -> None:
+    """Identifiers like ``selective_users`` must not be treated as SELECT statements."""
+    for name in ("selective_users", "with_events", "values_legacy"):
+        m = build_sql_source(_sql_src(name), ExtractConfig())
+        assert m.query_adapter_callback is None
+        assert m.table == name
+
+
+def test_incremental_query_adapter_preserves_incremental_predicate() -> None:
+    """Custom SQL must not replace dlt's incremental WHERE/ORDER with plain text()."""
+    md = MetaData()
+    tbl = Table("users", md, Column("id", Integer), Column("updated_at", Integer))
+    eng = create_engine("sqlite://")
+    base = select(tbl).where(tbl.c.updated_at > 99).order_by(tbl.c.updated_at.asc())
+
+    user_sql = "SELECT id, updated_at FROM public.users"
+    ext = ExtractConfig(incremental=True, cursor_field="updated_at")
+    m = build_sql_source(_sql_src(user_sql), ext)
+    assert m.query_adapter_callback is not None
+    merged = m.query_adapter_callback(base, tbl, m.incremental, eng)
+    compiled = str(merged.compile(eng, compile_kwargs={"literal_binds": True}))
+    assert "dlk_inner" in compiled
+    assert "99" in compiled
+    assert "updated_at" in compiled
+    assert user_sql.replace(" ", "") in compiled.replace(" ", "") or "public.users" in compiled
