@@ -1,64 +1,106 @@
 ---
-status: DRAFT
-spec_name: "[spec-name]"
-plan: 1
-task_slug: "[task-slug]"
-git_branch: "[spec_name]/[task-slug]"
-depends_on_tasks: []
-blocks_tasks: []
-path: "spec/<spec_name>/tasks/"
+status: TODO
+branch: {spec}/{task}
+parallelization: Sequential
+depends_on: []
+blocks: []
 ---
 
-# Plan: [Short title — e.g. scaffold project layout]
+# Task: <task name>
 
-## Git branch
+## Objective
+What does this task accomplish?
 
-**Convention:** work on a branch named exactly **`{spec_name}/{task-slug}`** (one slash), where:
+## Scope
+What is included in this task?
 
-- **`spec_name`** is the folder `spec/<spec_name>/` (kebab-case).
-- **`task_slug`** matches this file’s name: `N_<task-slug>.plan.md` (same slug, no `N_` prefix).
+## Out of Scope
+What is explicitly excluded from this task?
 
-Example: spec `patient-import`, file `1_add-migration.plan.md` → branch **`patient-import/add-migration`**.
+## Related Spec
+- Spec: `project/{spec}/`
+- Design: `project/{spec}/design.md`
+- Requirements: `project/{spec}/requirements.md`
 
-- [ ] Branch created from the agreed base (e.g. `main`).
-- [ ] PR targets the same base; branch name matches `git_branch` in frontmatter.
+## Dependencies
+List what must exist before this task can start.
 
-## Goal
+Examples:
+- upstream task completed
+- interface agreed
+- schema created
+- API contract finalized
 
-[One paragraph: what this plan delivers.]
+## Blocks
+List which downstream tasks depend on this task.
 
-## Definition of done
+## Parallelization Assessment
 
-- [ ] [Verifiable outcome 1]
-- [ ] [Verifiable outcome 2]
+### Classification
+Choose one:
+- Sequential
+- Parallel after interface agreement
+- Fully parallel
+- Conflict-prone
 
-## Inter-task dependencies
+### Reasoning
+Explain why this task can or cannot run in parallel.
 
-Fill **`depends_on_tasks`** in YAML with **task slugs** (not plan numbers) in **this spec** that must be **merged before** this task’s branch merges. Leave empty if none.
+### Coordination Notes
+Describe shared contracts, sequencing, mocks, merge risks, or ownership boundaries.
 
-| Dependency (task slug) | Branch that must land first | Notes |
-|------------------------|-----------------------------|------|
-| [e.g. `add-migration`] | `spec_name/add-migration` | |
+## Affected Files / Modules
+List the files, modules, services, routes, components, tables, or jobs likely affected.
 
-**Blocks (optional):** list task slugs that should not start until this lands → use **`blocks_tasks`** in frontmatter or a row here.
+## Inputs
+What inputs, artifacts, or decisions does this task rely on?
 
-## Out of scope (this plan)
+## Expected Outputs
+What concrete output should exist when this task is done?
 
-- [What we are not doing in this file]
+Examples:
+- endpoint implemented
+- schema created
+- UI flow completed
+- tests added
+- docs updated
 
-## Steps
+## Implementation Approach
+Describe the intended implementation steps.
 
-Execute in order unless marked parallel.
+Keep this practical and execution-oriented.
 
-- [ ] **Step 1:** [Concrete action—e.g. create `apps-api` skeleton per STRUCTURE.md]
-- [ ] **Step 2:** […]
-- [ ] **Step 3:** […]
+## Validation
+How should this task be validated?
 
-## Other dependencies
+### Automated Validation
+Examples:
+- unit tests
+- integration tests
+- e2e tests
+- lint
+- typecheck
+- migrations
 
-- **Requires:** [`DESIGN.md` / `REQUIREMENTS.md`; env vars; feature flags]
-- **External:** [tickets, services]
+### Manual Validation
+Examples:
+- UI walkthrough
+- API verification
+- happy path test
+- edge case test
+
+## Done Criteria
+What must be true before this task can be marked `DONE`?
+
+Examples:
+- implementation complete
+- tests added or updated
+- validation passed
+- docs updated if needed
+- no unresolved blocker remains
+
+## Blockers
+List any current blockers if status is `BLOCKED`.
 
 ## Notes
-
-[Risks, links to tickets, rollout order]
+Any additional implementation notes, assumptions, or follow-up observations.
