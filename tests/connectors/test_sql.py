@@ -51,6 +51,23 @@ def test_query_mode_postgres() -> None:
     m = build_sql_source(_sql_src(sql), ExtractConfig())
     assert m.schema == "public"
     assert m.table == "users"
+
+
+def test_query_mode_double_quoted_schema_and_table() -> None:
+    sql = 'SELECT id FROM "public"."users" WHERE 1=1'
+    m = build_sql_source(_sql_src(sql), ExtractConfig())
+    assert m.schema == "public"
+    assert m.table == "users"
+
+
+def test_query_mode_stops_before_join_not_consuming_join_operand() -> None:
+    sql = (
+        "SELECT * FROM analytics.events ev "
+        "INNER JOIN analytics.dim d ON ev.id = d.id"
+    )
+    m = build_sql_source(_sql_src(sql), ExtractConfig())
+    assert m.schema == "analytics"
+    assert m.table == "events"
     assert m.query_adapter_callback is not None
     out = m.query_adapter_callback(None, None)
     assert str(out) == sql

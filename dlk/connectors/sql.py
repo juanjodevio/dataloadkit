@@ -14,10 +14,20 @@ from dlk.core.extract_config import ExtractConfig
 from dlk.core.source_config import SourceConfig
 from dlk.core.types import SourceType, SqlDialect
 
-# First simple identifier or dotted identifier after FROM (Postgres / Redshift friendly).
-_FROM_TABLE_RE = re.compile(
-    r"(?is)\bfrom\s+(?:only\s+)?(?P<ident>(?:\"[^\"]+\"|`[^`]+`|[\w.]+))",
+# After a FROM relation, these tokens mean the qualified name has ended (join, alias, etc.).
+_AFTER_FROM_RELATION = re.compile(
+    r"^("
+    r"(?:cross|natural)\s+(?:join|apply)\b|"
+    r"(?:inner|left|right|full|cross)\s+join\b|"
+    r"join\b|"
+    r"where|group|order|limit|having|union|intersect|except|offset|fetch|lateral\b|"
+    r"pivot\b|as\b"
+    r")",
+    re.I,
 )
+
+# One identifier segment: double-quoted, backtick-quoted, or unquoted word.
+_FROM_IDENT_SEGMENT = re.compile(r'"[^"]+"|`[^`]+`|\w+')
 
 # Whole-token match only (avoids classifying ``selective_users`` / ``with_events`` as SQL).
 _SQL_STATEMENT_START = re.compile(r"(?is)\b(SELECT|WITH|VALUES)\b")
@@ -73,11 +83,56 @@ def _split_schema_and_table(qualified: str) -> tuple[str | None, str]:
     return (None, q)
 
 
-def _infer_from_clause_table(sql: str) -> str | None:
-    m = _FROM_TABLE_RE.search(sql)
+def _infer_from_schema_table(sql: str) -> tuple[str | None, str] | None:
+    """Parse schema + table from the first ``FROM`` relation.
+
+    Supports quoted qualified names such as ``"public"."users"`` (each segment is one
+    identifier), unqualified names, and dotted unquoted ``schema.table``. Stops before
+    ``AS``, join keywords, ``WHERE``, etc.
+    """
+    m = re.search(r"(?is)\bfrom\s+(?:only\s+)?", sql)
     if not m:
         return None
-    return _strip_sql_ident(m.group("ident"))
+    pos = m.end()
+    n = len(sql)
+    segments: list[str] = []
+
+    def relation_boundary_at(i: int) -> bool:
+        rest = sql[i:].lstrip()
+        return bool(_AFTER_FROM_RELATION.match(rest))
+
+    while pos < n:
+        c = sql[pos]
+        if c.isspace():
+            if segments:
+                rest_from_space = sql[pos:]
+                alias_m = re.match(r"\s+(\w+)\b", rest_from_space, re.I)
+                if alias_m:
+                    tail = rest_from_space[alias_m.end() :].lstrip()
+                    if not tail.startswith("."):
+                        break
+            if segments and relation_boundary_at(pos):
+                break
+            pos += 1
+            continue
+        if c == ".":
+            pos += 1
+            continue
+        if c in "),":
+            break
+        if segments and relation_boundary_at(pos):
+            break
+        mo = _FROM_IDENT_SEGMENT.match(sql, pos)
+        if not mo:
+            break
+        segments.append(_strip_sql_ident(mo.group(0)))
+        pos = mo.end()
+
+    if not segments:
+        return None
+    if len(segments) == 1:
+        return _split_schema_and_table(segments[0])
+    return (".".join(segments[:-1]), segments[-1])
 
 
 def _merge_user_sql_with_incremental_select(
@@ -185,9 +240,16 @@ def build_sql_source(
     """
     if source_config.source_type is not SourceType.SQL:
         raise ValueError("build_sql_source requires SourceConfig with source_type sql")
-    assert source_config.connection_string is not None
-    assert source_config.sql_dialect is not None
-    assert source_config.table_or_query is not None
+    if not (source_config.connection_string and str(source_config.connection_string).strip()):
+        raise ValueError(
+            "source.connection_string is required and must be non-empty for SQL sources",
+        )
+    if source_config.sql_dialect is None:
+        raise ValueError("source.sql_dialect is required when source_type is sql")
+    if not (source_config.table_or_query and str(source_config.table_or_query).strip()):
+        raise ValueError(
+            "source.table_or_query is required and must be non-empty for SQL sources",
+        )
 
     dialect = source_config.sql_dialect
     engine_kwargs = dict(_default_engine_kwargs(dialect))
@@ -195,20 +257,24 @@ def build_sql_source(
 
     incremental: Incremental[Any] | None = None
     if extract_config.incremental:
-        assert extract_config.cursor_field is not None
+        if not (extract_config.cursor_field and str(extract_config.cursor_field).strip()):
+            raise ValueError(
+                "extract.cursor_field is required and must be non-empty "
+                "when incremental is true",
+            )
         incremental = Incremental(extract_config.cursor_field)
 
     pk = extract_config.primary_key
     chunk_size = extract_config.chunk_size if extract_config.chunk_size is not None else 50000
 
     if _looks_like_sql_query(tq):
-        inferred = _infer_from_clause_table(tq)
-        if inferred is None:
+        parsed = _infer_from_schema_table(tq)
+        if parsed is None:
             raise ValueError(
                 "table_or_query looks like SQL but no FROM clause could be inferred "
                 "for reflection; use a table name in table_or_query or include a FROM clause",
             )
-        schema, table = _split_schema_and_table(inferred)
+        schema, table = parsed
         return SqlSourceMaterial(
             credentials=source_config.connection_string,
             table=table,
