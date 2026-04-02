@@ -121,4 +121,6 @@ Strict dependency flow:
 ```text
 api → builders → core → adapters → external (dlt)
              ↘ connectors ↗
+```
+
 Connectors only shape dlt sources from config; extract/load runs inside adapters + dlt.
