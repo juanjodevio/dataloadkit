@@ -17,6 +17,15 @@ Branch: **`mvp/scaffold`**
 - [ ] Branch created from `main`.
 - [ ] PR targets `main`; branch name matches `git_branch` in frontmatter.
 
+## Related spec
+
+- Spec folder: `spec/mvp/`
+- Design: `spec/mvp/DESIGN.md`
+- Requirements: `spec/mvp/REQUIREMENTS.md`
+- Root: `PRODUCT.md`, `STRUCTURE.md`, `TECH.md`
+
+When editing this plan, keep YAML aligned with **`.cursor/rules/spec-planning-enforcer.mdc`**: **`git_branch`**, **`task_slug`**, **`depends_on_tasks`**, **`blocks_tasks`**.
+
 ## Goal
 
 Set up the repository skeleton so every subsequent task has a working package, dev tooling, and CI baseline to build on. After this task, `uv sync`, `uv run ruff check`, `uv run mypy`, and `uv run pytest` all succeed on an empty library.

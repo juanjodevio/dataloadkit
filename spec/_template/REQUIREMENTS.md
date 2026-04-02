@@ -1,75 +1,165 @@
 ---
 status: DRAFT
-spec_name: "[spec-name]"
 ---
 
-# Requirements: [Title]
+# Requirements
 
-Write behavioral requirements in **[EARS](https://alistairmavin.com/ears/)** (Easy Approach to Requirements Syntax) **where they describe system responses** to triggers, states, or optional features. Mix with narrative **Summary** / **Scope** as needed.
-
-## EARS patterns (quick reference)
-
-| Pattern | Form |
-|--------|------|
-| **Ubiquitous** | The `<system>` shall `<system response>` |
-| **Event-driven** | When `<trigger>`, the `<system>` shall `<system response>` |
-| **State-driven** | While `<precondition(s)>`, the `<system>` shall `<system response>` |
-| **Optional** | Where `<feature is included>`, the `<system>` shall `<system response>` |
-| **Unwanted behavior** | If `<trigger>`, then the `<system>` shall `<system response>` |
-
-Use one **The … shall …** clause per requirement when possible; split if multiple independent responses.
-
-## Summary
-
-[One paragraph: problem, user outcome, link to `PRODUCT.md` and `DESIGN.md`.]
+## Purpose
+Briefly describe what this feature or spec is intended to achieve.
 
 ## Scope
+What is included in this feature?
 
-- **In scope:** [bullets]
-- **Out of scope:** [bullets]
+## Out of Scope
+What is explicitly excluded?
 
-## EARS requirements
+## Actors
+Who interacts with this feature?
 
-### Ubiquitous
+Examples:
+- Doctor
+- Patient
+- Admin
+- External system
 
-- The [system or feature name] shall [response — always true for the feature].
+## Preconditions
+What must already be true before this feature can work?
 
-### Event-driven
+Examples:
+- User is authenticated
+- Patient record exists
+- Appointment exists
+- Required integration is configured
 
-- When [trigger / optional precondition], the [system] shall [response].
+## Functional Requirements
 
-### State-driven
+Use EARS where it improves clarity and testability.
 
-- While [precondition], the [system] shall [response].
+### Ubiquitous Requirements
+Use for statements that are always true.
 
-### Optional (feature toggles / modules)
+Examples:
+- The system shall store each consultation with a creation timestamp.
+- The system shall associate each consultation with exactly one patient.
+- The system shall preserve the final saved note as the source of truth.
 
-- Where [feature is included], the [system] shall [response].
+### Event-Driven Requirements
+Use when something happens in response to a trigger.
 
-### Unwanted behavior
+Format:
+- When <trigger>, the system shall <response>.
 
-- If [fault or abuse trigger], then the [system] shall [response — e.g. reject, rollback, notify].
+Examples:
+- When a doctor uploads consultation audio, the system shall store the audio and start transcription.
+- When a doctor saves a consultation note, the system shall persist the edited note and update consultation history.
+- When a task is completed, the system shall update its status to DONE.
 
-## Non-EARS notes
+### Conditional Requirements
+Use when behavior depends on a condition.
 
-[Constraints, data definitions, glossary—only if not expressible as EARS without clutter.]
+Format:
+- If <condition>, the system shall <response>.
 
-## Acceptance criteria
+Examples:
+- If transcription fails, the system shall mark the consultation as transcription_failed and show an error state.
+- If a required upstream spec artifact is missing, the system shall stop task creation and request the missing artifact first.
+- If a task plan is already marked DONE, the system shall not regenerate it unless explicitly reopened.
 
-**Spec-level** acceptance lives here in **`REQUIREMENTS.md`**: observable conditions that show each **behavioral** EARS requirement is satisfied. Prefer **one row per requirement ID** in **Traceability** (acceptance phrasing plus how it is verified—manual check, automated test name, or artifact). For a few critical flows you may add **Given / When / Then** under the same ID in **Non-EARS notes** or extra bullets—do not duplicate the EARS *shall* in different words only.
+### State-Driven Requirements
+Use when behavior applies only while the system is in a certain state.
 
-**Product-wide** or MVP checkout lists may also appear in **`PRODUCT.md`** when they span many specs; per-feature detail still maps to IDs here.
+Format:
+- While <state>, the system shall <response>.
 
-**Task-level** “done” for a slice belongs in **`tasks/N_<slug>.plan.md`** under **Definition of done**, referencing requirement IDs (e.g. `R1`) when the task only covers part of the spec.
+Examples:
+- While note generation is in progress, the system shall show the consultation as processing.
+- While a task is marked IN_PROGRESS, the system shall preserve its assigned branch and dependencies.
+- While a record is locked for editing, the system shall prevent concurrent updates.
 
-## Traceability
+### Optional / Feature-Scoped Requirements
+Use when a behavior only applies in a specific context or variant.
 
-| ID | EARS summary | Acceptance criteria & verification |
-|----|----------------|-------------------------------------|
-| R1 | … | … |
+Format:
+- Where <feature/context applies>, the system shall <response>.
 
-## Open questions
+Examples:
+- Where audio recording is supported, the system shall allow the doctor to start and stop recording from the consultation screen.
+- Where multi-doctor clinics are enabled, the system shall scope access according to clinic membership.
+- Where a task is parallelizable, the system shall assign it a dedicated branch using the format `{spec}/{task}`.
 
-| # | Question | Owner | Resolution |
-|---|----------|-------|------------|
-| 1 | […] | […] | […] |
+## Data Requirements
+What data must be created, read, updated, or preserved?
+
+Examples:
+- Required fields
+- Ownership constraints
+- Retention expectations
+- Status fields
+- Audit fields
+
+## Interface / Contract Requirements
+What external or internal contracts must be honored?
+
+Examples:
+- API payload requirements
+- Validation rules
+- Event contracts
+- File format requirements
+- UI state requirements
+
+## Non-Functional Requirements
+
+### Performance
+Examples:
+- The system shall return the consultation detail view in under 2 seconds under normal load.
+- The system shall generate an AI draft note within 30 seconds for supported audio lengths.
+
+### Reliability
+Examples:
+- The system shall not lose uploaded consultation audio after a successful upload response.
+- The system shall preserve status and branch metadata for each task plan.
+
+### Security / Privacy
+Examples:
+- The system shall restrict access so a doctor can only view their own patients in MVP.
+- The system shall store secrets outside the codebase.
+- The system shall audit note creation and edits.
+
+### Usability
+Examples:
+- The system shall be usable on mobile web for core doctor workflows.
+- The system shall allow a doctor to review and edit AI-generated notes before final save.
+
+### Observability
+Examples:
+- The system shall emit structured logs for note generation failures.
+- The system shall record task lifecycle changes for spec-driven workflows.
+
+## Acceptance Criteria
+List the concrete outcomes that must be true for this feature to be considered complete.
+
+Examples:
+- A doctor can create a consultation and save a final note.
+- A doctor can upload audio and receive a draft SOAP note.
+- A completed task is marked DONE and is not regenerated automatically.
+- A task plan includes dependencies, parallelization assessment, and branch name.
+
+## Edge Cases
+List tricky or failure scenarios.
+
+Examples:
+- Empty or corrupted audio file
+- Doctor cancels mid-process
+- Duplicate patient names
+- Task file exists but has invalid metadata
+- Dependency task is BLOCKED
+- Required spec file exists but is incomplete
+
+## Assumptions
+List assumptions currently being made.
+
+## Open Questions
+List unresolved points that must be answered later.
+
+## Notes
+Anything important that does not fit above.

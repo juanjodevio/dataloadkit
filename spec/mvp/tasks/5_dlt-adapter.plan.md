@@ -17,6 +17,15 @@ Branch: **`mvp/dlt-adapter`**
 - [ ] Branch created from `main` after `mvp/core-models`, `mvp/sql-connector`, and `mvp/s3-connector` all merge.
 - [ ] PR targets `main`; branch name matches `git_branch` in frontmatter.
 
+## Related spec
+
+- Spec folder: `spec/mvp/`
+- Design: `spec/mvp/DESIGN.md`
+- Requirements: `spec/mvp/REQUIREMENTS.md`
+- Root: `PRODUCT.md`, `STRUCTURE.md`, `TECH.md`
+
+When editing this plan, keep YAML aligned with **`.cursor/rules/spec-planning-enforcer.mdc`**: **`git_branch`**, **`task_slug`**, **`depends_on_tasks`**, **`blocks_tasks`**.
+
 ## Goal
 
 Implement `DltAdapter` in `dlk/adapters/` — the single execution engine that receives a validated `LoadPlan`, composes a dlt pipeline (source from connectors + destination), runs it, and returns a `LoadResult`. After this task, any code that can build a `LoadPlan` can execute a real data load.

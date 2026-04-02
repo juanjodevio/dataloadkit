@@ -1,29 +1,67 @@
 ---
 status: DRAFT
-spec_name: "[spec-name]"
 ---
 
-# Design: [Title]
+# Design
 
-**Create this file before `REQUIREMENTS.md`** in this folder so [EARS](https://alistairmavin.com/ears/) requirements are written against a stable design.
+## Goal
+What outcome should this feature achieve?
 
 ## Context
+Why is this feature needed now?
+What existing problem, workflow, or business context does it address?
 
-[Why this approach, alternatives considered briefly.]
+## Scope Summary
+What is in scope for this design?
+What is explicitly out of scope?
 
-## Architecture
+## User / System Flow
+Describe the main flow end-to-end.
+This can be written as:
+- numbered steps
+- a short sequence
+- or a simple diagram reference
 
-- **Components / modules:** [where code lives per `STRUCTURE.md`]
-- **Data:** [entities, migrations, caches]
-- **APIs / events:** [contracts, idempotency]
-- **Failure & recovery:** [rollback, retries, user-visible errors]
+## Solution Shape
+Describe the proposed solution at a high level.
 
-## Decisions
+Include:
+- major components involved
+- request/response flow
+- state transitions
+- persistence expectations
+- external integrations if any
 
-| Decision | Rationale | ADR / link |
-|------------|-----------|------------|
-| […] | […] | […] |
+## Key Design Decisions
+List the most important design decisions.
 
-## Out of scope (design)
+For each decision, include:
+- decision
+- rationale
+- implication
 
-[What this design explicitly does not cover.]
+## Data / Contract Impact
+What entities, payloads, schemas, or interfaces are affected?
+
+Examples:
+- database tables
+- API contracts
+- events
+- frontend view models
+- file formats
+
+## Impacted Components
+What modules, services, pages, jobs, or integrations are likely affected?
+
+## Risks / Tradeoffs
+What are the main tradeoffs, complexity points, or risks?
+
+## Rollout / Migration Notes
+Only include if relevant.
+Describe any migration, backward compatibility, or rollout concerns.
+
+## Open Questions
+What still needs clarification before implementation?
+
+## Notes
+Anything else worth preserving that is design-relevant but not a requirement or task.

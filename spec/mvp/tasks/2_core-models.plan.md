@@ -17,6 +17,15 @@ Branch: **`mvp/core-models`**
 - [ ] Branch created from `main` after `mvp/scaffold` merges.
 - [ ] PR targets `main`; branch name matches `git_branch` in frontmatter.
 
+## Related spec
+
+- Spec folder: `spec/mvp/`
+- Design: `spec/mvp/DESIGN.md`
+- Requirements: `spec/mvp/REQUIREMENTS.md`
+- Root: `PRODUCT.md`, `STRUCTURE.md`, `TECH.md`
+
+When editing this plan, keep YAML aligned with **`.cursor/rules/spec-planning-enforcer.mdc`**: **`git_branch`**, **`task_slug`**, **`depends_on_tasks`**, **`blocks_tasks`**.
+
 ## Goal
 
 Define the shared data model that every other module imports: `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`, `LoadPlan`, and `LoadResult` — all as stdlib `dataclasses` with explicit validation in `core/`. After this task, builders, connectors, and the adapter have stable types to code against.

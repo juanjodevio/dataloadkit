@@ -17,6 +17,15 @@ Branch: **`mvp/s3-connector`**
 - [ ] Branch created from `main` after `mvp/core-models` merges.
 - [ ] PR targets `main`; branch name matches `git_branch` in frontmatter.
 
+## Related spec
+
+- Spec folder: `spec/mvp/`
+- Design: `spec/mvp/DESIGN.md`
+- Requirements: `spec/mvp/REQUIREMENTS.md`
+- Root: `PRODUCT.md`, `STRUCTURE.md`, `TECH.md`
+
+When editing this plan, keep YAML aligned with **`.cursor/rules/spec-planning-enforcer.mdc`**: **`git_branch`**, **`task_slug`**, **`depends_on_tasks`**, **`blocks_tasks`**.
+
 ## Goal
 
 Implement thin helpers in `dlk/connectors/` that translate a `SourceConfig` (type=s3) into dlt filesystem-oriented source/resource material the `DltAdapter` can attach to a pipeline. No I/O happens here — only configuration shaping.

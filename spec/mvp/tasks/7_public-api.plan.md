@@ -17,6 +17,15 @@ Branch: **`mvp/public-api`**
 - [ ] Branch created from `main` after `mvp/builders` merges.
 - [ ] PR targets `main`; branch name matches `git_branch` in frontmatter.
 
+## Related spec
+
+- Spec folder: `spec/mvp/`
+- Design: `spec/mvp/DESIGN.md`
+- Requirements: `spec/mvp/REQUIREMENTS.md`
+- Root: `PRODUCT.md`, `STRUCTURE.md`, `TECH.md`
+
+When editing this plan, keep YAML aligned with **`.cursor/rules/spec-planning-enforcer.mdc`**: **`git_branch`**, **`task_slug`**, **`depends_on_tasks`**, **`blocks_tasks`**.
+
 ## Goal
 
 Expose the stable, user-facing entry points `dlk.from_sql(...)` and `dlk.from_s3(...)` in `dlk/api/` and re-export them from `dlk/__init__.py`. After this task, users interact with dlk exactly as described in DESIGN.md and REQUIREMENTS.md: `import dlk; dlk.from_sql(...).to_s3(...).load()`.

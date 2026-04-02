@@ -1,9 +1,9 @@
 ---
 status: TODO
-branch: {spec}/{task}
-parallelization: Sequential
-depends_on: []
-blocks: []
+git_branch: <spec_name>/<task-slug>
+task_slug: <task-slug>
+depends_on_tasks: []
+blocks_tasks: []
 ---
 
 # Task: <task name>
@@ -18,11 +18,13 @@ What is included in this task?
 What is explicitly excluded from this task?
 
 ## Related Spec
-- Spec: `project/{spec}/`
-- Design: `project/{spec}/design.md`
-- Requirements: `project/{spec}/requirements.md`
+- Spec: `spec/<spec_name>/`
+- Design: `spec/<spec_name>/DESIGN.md`
+- Requirements: `spec/<spec_name>/REQUIREMENTS.md`
 
 ## Dependencies
+**Frontmatter (required by `.cursor/rules/spec-planning-enforcer.mdc`):** `git_branch` = `spec_name/task-slug` (matches this file’s `N_<task-slug>.plan.md`), `task_slug` = same `<task-slug>`, `depends_on_tasks` = list of upstream **task slugs** in this spec, `blocks_tasks` = optional downstream slugs.
+
 List what must exist before this task can start.
 
 Examples:

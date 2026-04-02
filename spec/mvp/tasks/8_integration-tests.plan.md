@@ -17,6 +17,15 @@ Branch: **`mvp/integration-tests`**
 - [ ] Branch created from `main` after `mvp/public-api` merges.
 - [ ] PR targets `main`; branch name matches `git_branch` in frontmatter.
 
+## Related spec
+
+- Spec folder: `spec/mvp/`
+- Design: `spec/mvp/DESIGN.md`
+- Requirements: `spec/mvp/REQUIREMENTS.md`
+- Root: `PRODUCT.md`, `STRUCTURE.md`, `TECH.md`
+
+When editing this plan, keep YAML aligned with **`.cursor/rules/spec-planning-enforcer.mdc`**: **`git_branch`**, **`task_slug`**, **`depends_on_tasks`**, **`blocks_tasks`**.
+
 ## Goal
 
 Validate every MVP acceptance path end-to-end against real or controlled test infrastructure, and provide usage examples. After this task, the MVP release standard from `PRODUCT.md` is demonstrably met.

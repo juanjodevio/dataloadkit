@@ -17,6 +17,15 @@ Branch: **`mvp/builders`**
 - [ ] Branch created from `main` after `mvp/core-models` and `mvp/dlt-adapter` merge.
 - [ ] PR targets `main`; branch name matches `git_branch` in frontmatter.
 
+## Related spec
+
+- Spec folder: `spec/mvp/`
+- Design: `spec/mvp/DESIGN.md`
+- Requirements: `spec/mvp/REQUIREMENTS.md`
+- Root: `PRODUCT.md`, `STRUCTURE.md`, `TECH.md`
+
+When editing this plan, keep YAML aligned with **`.cursor/rules/spec-planning-enforcer.mdc`**: **`git_branch`**, **`task_slug`**, **`depends_on_tasks`**, **`blocks_tasks`**.
+
 ## Goal
 
 Implement the fluent builder layer (`dlk/builders/`) that collects user configuration through chained method calls, materializes a validated `LoadPlan`, and executes it via `DltAdapter`. After this task, a caller can manually instantiate a builder, configure a pipeline, and call `.load()` to run it end-to-end.
