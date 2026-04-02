@@ -8,7 +8,7 @@ depends_on_tasks: [scaffold]
 blocks_tasks: [sql-connector, s3-connector, dlt-adapter, builders]
 ---
 
-# Plan: Core dataclass models and validation
+# Plan: Core Pydantic models and validation
 
 ## Git branch
 
@@ -28,16 +28,16 @@ When editing this plan, keep YAML aligned with **`.cursor/rules/spec-planning-en
 
 ## Goal
 
-Define the shared data model that every other module imports: `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`, `LoadPlan`, and `LoadResult` — all as stdlib `dataclasses` with explicit validation in `core/`. After this task, builders, connectors, and the adapter have stable types to code against.
+Define the shared data model that every other module imports: `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`, `LoadPlan`, and `LoadResult` — as Pydantic models with explicit invariants in `core/`. After this task, builders, connectors, and the adapter have stable types to code against.
 
 ## Definition of done
 
-- [ ] `dlk/core/` contains dataclass definitions for `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`, `LoadPlan`.
-- [ ] `dlk/results/` contains `LoadResult` dataclass with fields for row counts, execution metadata, and error info.
-- [ ] Enums or literals defined for: source type (sql, s3), destination type (sql, s3, sftp), **SQL dialect** (**Redshift** vs **Postgres** for dlt destination selection per **`spec/mvp/tasks/5_dlt-adapter.plan.md`**), write mode (append, replace, merge), file format for S3 read (parquet, csv, jsonl, **json** where `json` triggers preprocessing per **`PRODUCT.md`**).
-- [ ] Validation functions in `dlk/core/` enforce: required fields present, merge requires primary key, destination defined, **SQL source and SQL destination `sql_dialect`**, format valid for destination type.
-- [ ] Unit tests cover happy-path construction and all validation error paths.
-- [ ] `uv run ruff check`, `uv run mypy dlk`, `uv run pytest` all green.
+- [x] `dlk/core/` contains Pydantic model definitions for `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`, `LoadPlan`.
+- [x] `dlk/results/` contains `LoadResult` Pydantic model with fields for row counts, execution metadata, and error info.
+- [x] Enums or literals defined for: source type (sql, s3), destination type (sql, s3, sftp), **SQL dialect** (**Redshift** vs **Postgres** for dlt destination selection per **`spec/mvp/tasks/5_dlt-adapter.plan.md`**), write mode (append, replace, merge), file format for S3 read (parquet, csv, jsonl, **json** where `json` triggers preprocessing per **`PRODUCT.md`**).
+- [x] Model invariants enforce: required fields present, merge requires primary key, destination defined, **SQL source and SQL destination `sql_dialect`**, format valid for destination type.
+- [x] Unit tests cover happy-path construction and all validation error paths.
+- [x] `uv run ruff check`, `uv run mypy dlk`, `uv run pytest` all green.
 
 ## Inter-task dependencies
 
@@ -56,17 +56,17 @@ Define the shared data model that every other module imports: `SourceConfig`, `D
 
 ## Steps
 
-- [ ] **Step 1:** Define enums/literals in `dlk/core/types.py`: `SourceType`, `DestinationType`, **`SqlDialect`** (`REDSHIFT`, `POSTGRES` — drives **`dlt.destinations.redshift`** vs **`dlt.destinations.postgres`**), `WriteMode`, `FileFormat`.
-- [ ] **Step 2:** Define `SourceConfig` dataclass in `dlk/core/source_config.py` — fields: source type, connection string or S3 path, table/query, glob pattern, file format (optional: csv, parquet, jsonl, **json**), credentials (optional dict), **`sql_dialect: SqlDialect | None`** — **required** when `source_type == sql` (same **`SqlDialect`** enum as destinations: **Redshift** vs **PostgreSQL** for dlt source wiring).
-- [ ] **Step 3:** Define `DestinationConfig` dataclass in `dlk/core/destination_config.py` — fields: destination type, connection string or path/URL, dataset name, table name, file format (optional for filesystem), credentials (optional dict), **`sql_dialect: SqlDialect | None`** — **required** when `destination_type == sql` (selects dlt Redshift vs Postgres destination); must be **`None`** when destination is not SQL.
-- [ ] **Step 4:** Define `ExtractConfig` dataclass in `dlk/core/extract_config.py` — fields: incremental (bool), cursor field (optional), chunk size (optional), primary key (optional list of str).
-- [ ] **Step 5:** Define `LoadConfig` dataclass in `dlk/core/load_config.py` — fields: write mode (default append), partitioning (optional).
-- [ ] **Step 6:** Define `LoadPlan` dataclass in `dlk/core/plan.py` — composes `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`, plus pipeline name.
-- [ ] **Step 7:** Define `LoadResult` dataclass in `dlk/results/result.py` — fields: success (bool), row count (optional int), execution time (optional float), error message (optional str), raw metadata (optional dict).
-- [ ] **Step 8:** Write validation functions in `dlk/core/validation.py` — validate a `LoadPlan` before execution (merge needs PK, destination required, **SQL sources and SQL destinations require `sql_dialect`**, filesystem format valid, incremental needs cursor field, etc.).
-- [ ] **Step 9:** Export public types from `dlk/core/__init__.py` and `dlk/results/__init__.py`.
-- [ ] **Step 10:** Add unit tests: `tests/core/test_models.py` (construction, defaults, field types) and `tests/core/test_validation.py` (each validation rule, both pass and fail).
-- [ ] **Step 11:** Verify: `uv run ruff check`, `uv run mypy dlk`, `uv run pytest`.
+- [x] **Step 1:** Define enums/literals in `dlk/core/types.py`: `SourceType`, `DestinationType`, **`SqlDialect`** (`REDSHIFT`, `POSTGRES` — drives **`dlt.destinations.redshift`** vs **`dlt.destinations.postgres`**), `WriteMode`, `FileFormat`.
+- [x] **Step 2:** Define `SourceConfig` Pydantic model in `dlk/core/source_config.py` — fields: source type, connection string or S3 path, table/query, glob pattern, file format (optional: csv, parquet, jsonl, **json**), credentials (optional dict), **`sql_dialect: SqlDialect | None`** — **required** when `source_type == sql` (same **`SqlDialect`** enum as destinations: **Redshift** vs **PostgreSQL** for dlt source wiring).
+- [x] **Step 3:** Define `DestinationConfig` Pydantic model in `dlk/core/destination_config.py` — fields: destination type, connection string or path/URL, dataset name, table name, file format (optional for filesystem), credentials (optional dict), **`sql_dialect: SqlDialect | None`** — **required** when `destination_type == sql` (selects dlt Redshift vs Postgres destination); must be **`None`** when destination is not SQL.
+- [x] **Step 4:** Define `ExtractConfig` Pydantic model in `dlk/core/extract_config.py` — fields: incremental (bool), cursor field (optional), chunk size (optional), primary key (optional tuple of str — immutable so merge invariants cannot be broken by mutating a list in place).
+- [x] **Step 5:** Define `LoadConfig` Pydantic model in `dlk/core/load_config.py` — fields: write mode (default append), partitioning (optional).
+- [x] **Step 6:** Define `LoadPlan` Pydantic model in `dlk/core/plan.py` — composes `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`, plus pipeline name.
+- [x] **Step 7:** Define `LoadResult` Pydantic model in `dlk/results/result.py` — fields: success (bool), row count (optional int), execution time (optional float), error message (optional str), raw metadata (optional dict).
+- [x] **Step 8:** Enforce invariants via Pydantic model validators (merge needs PK, destination required, **SQL sources and SQL destinations require `sql_dialect`**, filesystem format valid, incremental needs cursor field, etc.).
+- [x] **Step 9:** Export public types from `dlk/core/__init__.py` and `dlk/results/__init__.py`.
+- [x] **Step 10:** Add unit tests: `tests/core/test_models.py` (construction, defaults, field types) and `tests/core/test_validation.py` (each validation rule, both pass and fail).
+- [x] **Step 11:** Verify: `uv run ruff check`, `uv run mypy dlk`, `uv run pytest`.
 
 ## Other dependencies
 
@@ -74,7 +74,7 @@ Define the shared data model that every other module imports: `SourceConfig`, `D
 
 ## Affected files / modules
 
-- `dlk/core/types.py`, `source_config.py`, `destination_config.py`, `extract_config.py`, `load_config.py`, `plan.py`, `validation.py`, `__init__.py`
+- `dlk/core/types.py`, `source_config.py`, `destination_config.py`, `extract_config.py`, `load_config.py`, `plan.py`, `__init__.py`
 - `dlk/results/result.py`, `__init__.py`
 - `tests/core/test_models.py`, `test_validation.py`
 
@@ -88,7 +88,7 @@ Define the shared data model that every other module imports: `SourceConfig`, `D
 
 ### Manual
 
-- Instantiate each dataclass in a REPL; confirm repr, defaults, and type annotations behave as expected.
+- Instantiate each model in a REPL; confirm repr, defaults, and type annotations behave as expected.
 
 ## Notes
 

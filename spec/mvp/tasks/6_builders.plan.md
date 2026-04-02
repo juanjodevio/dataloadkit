@@ -34,7 +34,7 @@ Implement the fluent builder layer (`dlk/builders/`) that collects user configur
 
 - [ ] `SQLSourceBuilder` exists — accepts connection/table/query at construction; exposes `.to_sql()`, `.to_s3()`, `.to_sftp()` to set destination; exposes `.with_incremental()`, `.with_write_mode()`, `.with_primary_key()`, `.with_format()` modifiers; exposes `.load()` terminal.
 - [ ] `S3SourceBuilder` exists — accepts S3 path/glob at construction; exposes same destination and modifier methods (minus SQL-only options like `.with_incremental()`).
-- [ ] `.load()` validates config (via `core/validation`), builds `LoadPlan`, calls `DltAdapter.execute()`, returns `LoadResult`.
+- [ ] `.load()` builds a `LoadPlan`; Pydantic model validators enforce invariants during construction; calls `DltAdapter.execute()`, returns `LoadResult`.
 - [ ] Invalid state (missing destination, merge without PK, etc.) raises clear errors before execution.
 - [ ] Fluent chain returns `self` (or a typed intermediate) at each step.
 - [ ] Unit tests cover: full chain SQL→SQL, SQL→S3, SQL→SFTP, S3→SQL, S3→S3, S3→SFTP; modifier combinations; validation errors.
@@ -67,7 +67,7 @@ Implement the fluent builder layer (`dlk/builders/`) that collects user configur
   - Same destination and modifier methods (`.with_incremental()` may be omitted or raise NotImplementedError per open question in REQUIREMENTS).
   - Same `.load()` terminal.
 - [ ] **Step 3:** Extract shared destination/modifier/load logic into a base or mixin if duplication is significant; keep it simple — favor composition per TECH.md.
-- [ ] **Step 4:** In `.load()`, call `dlk.core.validation.validate_plan(plan)` before adapter execution; surface validation errors as clear exceptions.
+- [ ] **Step 4:** In `.load()`, rely on `LoadPlan` construction validation (Pydantic). Only if you bypass construction validation (e.g. via `model_construct`), re-validate in the execution layer before running the dlt pipeline.
 - [ ] **Step 5:** Export builders from `dlk/builders/__init__.py`.
 - [ ] **Step 6:** Add unit tests in `tests/builders/test_sql_source_builder.py` — chain construction, each modifier, each destination type, validation failures (no destination, merge without PK), mock adapter to verify LoadPlan shape.
 - [ ] **Step 7:** Add unit tests in `tests/builders/test_s3_source_builder.py` — same coverage for S3 paths; include **`with_format("json")`** / inferred `.json` so `LoadPlan` carries format **json** for the adapter.

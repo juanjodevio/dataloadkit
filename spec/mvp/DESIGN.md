@@ -51,7 +51,7 @@ Main flow:
    - `with_primary_key(...)`
    - `with_format(...)` (S3 source: includes `json` vs `jsonl`—`json` selects preprocessing)
 5. User calls `.load()`
-6. Builder / `core` validates required config (dataclass invariants and cross-field rules)
+6. Builder / `core` validates required config (Pydantic model validators and cross-field rules)
 7. Terminal step materializes a `LoadPlan` (`SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`)
 8. `DltAdapter` maps the `LoadPlan` to dlt pipeline + source/resource configuration (if S3 source format is **JSON**, run **JSON→JSONL** normalization first—see below)
 9. dlt executes the load
@@ -59,12 +59,12 @@ Main flow:
 11. User receives structured metadata about the run
 
 ## Solution Shape
-The solution is a layered Python library with a small public API and a single internal execution path. It follows **`STRUCTURE.md`** (package layout under `dlk/`) and **`TECH.md`** (CPython 3.9.2+ below **3.15** per **`dlt`**, `uv`, dlt-only execution, **dataclasses** for config/plan types). Product scope and acceptance are anchored in **`PRODUCT.md`**.
+The solution is a layered Python library with a small public API and a single internal execution path. It follows **`STRUCTURE.md`** (package layout under `dlk/`) and **`TECH.md`** (CPython 3.9.2+ below **3.15** per **`dlt`**, `uv`, dlt-only execution, **Pydantic** for config/plan types). Product scope and acceptance are anchored in **`PRODUCT.md`**.
 
 ### Modules (see `STRUCTURE.md`)
 - **`api/`** — `from_sql`, `from_s3`, and stable entrypoints that delegate to builders.
 - **`builders/`** — `SQLSourceBuilder`, `S3SourceBuilder`, destination chaining (`to_sql`, `to_s3`, `to_sftp`), and modifiers (`with_incremental`, `with_write_mode`, `with_primary_key`, `with_format`, etc.).
-- **`core/`** — `LoadPlan` and dataclass configs: `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`; validation before planning completes.
+- **`core/`** — `LoadPlan` and Pydantic configs: `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`; validation before planning completes.
 - **`connectors/`** — thin SQL (**Redshift** / **PostgreSQL**) / S3 → dlt source/resource wiring from `SourceConfig` (no extract outside dlt; used by the adapter).
 - **`adapters/`** — `DltAdapter` only: maps `LoadPlan` to dlt pipeline + sources + destinations and runs execution.
 - **`results/`** — `LoadResult` and helpers (normalized run metadata for callers).

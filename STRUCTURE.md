@@ -66,7 +66,7 @@ Owns:
 - DestinationConfig
 - ExtractConfig
 - LoadConfig
-- validation logic (models are **`dataclasses`** per **`TECH.md`**)
+- validation logic (models are **Pydantic `BaseModel`** per **`TECH.md`**)
 
 ---
 
