@@ -157,6 +157,8 @@ Not applicable for MVP.
 - dlt-native, not dlt-replacement
 
 ## Data Model Overview
+Implement as **stdlib `dataclasses`** with validation in `core/` (see **`TECH.md`**).
+
 - SourceConfig (SQL, S3)—each resolves to a dlt source
 - DestinationConfig (SQL, S3, SFTP)—each resolves to a dlt destination
 - ExtractConfig
@@ -217,3 +219,4 @@ It provides a clean, fluent API for ingestion powered by dlt, inspired by awswra
 - Isolate dlt integration in a single adapter layer
 - Treat **all sources and all destinations** consistently via dlt (no parallel non-dlt extract/load paths for MVP scope)
 - Optimize for developer experience over flexibility
+- **Runtime:** target **CPython 3.9+**; full matrix, dependencies, and dev tooling live in **`TECH.md`**

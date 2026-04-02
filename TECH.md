@@ -116,13 +116,14 @@ Environments:
 - SFTP must be handled via dlt filesystem destination
 - Library must remain lightweight (no heavy runtime dependencies)
 - Python-only (no multi-language support)
+- Source wiring lives in **`connectors/`** (per `STRUCTURE.md`): translate `SourceConfig` into dlt source/resource material; **`adapters/`** owns execution and composes connectors + dlt—no second extract path
 
 ---
 
 ## Coding Preferences
 
 - Use type hints everywhere
-- Prefer dataclasses or Pydantic models for configs
+- **Config and plan models:** use **`dataclasses`** (stdlib) for `SourceConfig`, `DestinationConfig`, `LoadPlan`, and related types; keep validation explicit in `core/` (no Pydantic as a **required** dlk dependency for these models)
 - Favor composition over inheritance
 - Avoid hidden side effects
 - Keep public API minimal and stable
@@ -158,7 +159,7 @@ Environments:
 
 ## Notes
 
-- dlt must be isolated within adapter layer
+- dlt must be isolated within the **adapter** layer; **`connectors/`** only shapes dlt sources from config (see `STRUCTURE.md`) and is invoked from the adapter, not as a parallel runtime
 - filesystem destinations (S3, SFTP) must behave consistently
 - avoid introducing additional abstraction layers unless necessary
 - prioritize developer experience over configurability

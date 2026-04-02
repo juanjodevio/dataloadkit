@@ -16,6 +16,8 @@ Top-level structure:
 - pyproject.toml       # package configuration
 - README.md            # project overview
 
+**Runtime:** CPython **3.9+** (supported range, CI matrix, and tool versions—**`uv`**, ruff, mypy—are defined in **`TECH.md`**; `requires-python` in `pyproject.toml` must stay aligned).
+
 ---
 
 ## Architectural Style
@@ -64,7 +66,7 @@ Owns:
 - DestinationConfig
 - ExtractConfig
 - LoadConfig
-- validation logic
+- validation logic (models are **`dataclasses`** per **`TECH.md`**)
 
 ---
 
