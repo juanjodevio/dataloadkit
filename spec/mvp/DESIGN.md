@@ -59,7 +59,7 @@ Main flow:
 11. User receives structured metadata about the run
 
 ## Solution Shape
-The solution is a layered Python library with a small public API and a single internal execution path. It follows **`STRUCTURE.md`** (package layout under `dlk/`) and **`TECH.md`** (CPython 3.9+, `uv`, dlt-only execution, **dataclasses** for config/plan types). Product scope and acceptance are anchored in **`PRODUCT.md`**.
+The solution is a layered Python library with a small public API and a single internal execution path. It follows **`STRUCTURE.md`** (package layout under `dlk/`) and **`TECH.md`** (CPython 3.9.2+ below **3.15** per **`dlt`**, `uv`, dlt-only execution, **dataclasses** for config/plan types). Product scope and acceptance are anchored in **`PRODUCT.md`**.
 
 ### Modules (see `STRUCTURE.md`)
 - **`api/`** — `from_sql`, `from_s3`, and stable entrypoints that delegate to builders.

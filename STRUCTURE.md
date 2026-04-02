@@ -16,7 +16,7 @@ Top-level structure:
 - pyproject.toml       # package configuration
 - README.md            # project overview
 
-**Runtime:** CPython **3.9+** (supported range, CI matrix, and tool versions—**`uv`**, ruff, mypy—are defined in **`TECH.md`**; `requires-python` in `pyproject.toml` must stay aligned).
+**Runtime:** CPython **3.9.2+** (below **3.15** per **`dlt`**); supported range, CI matrix, and tool versions—**`uv`**, ruff, mypy—are defined in **`TECH.md`**; `requires-python` in `pyproject.toml` must stay aligned.
 
 ---
 
