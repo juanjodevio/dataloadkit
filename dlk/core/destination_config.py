@@ -48,7 +48,7 @@ class DestinationConfig(BaseModel):
                 raise ValueError(
                     "destination.sql_dialect is required when destination_type is sql",
                 )
-            if self.filesystem_url is not None and str(self.filesystem_url).strip():
+            if self.filesystem_url is not None:
                 raise ValueError(
                     "destination.filesystem_url must be unset when destination_type is sql",
                 )
@@ -65,7 +65,7 @@ class DestinationConfig(BaseModel):
                 raise ValueError(
                     "destination.sql_dialect must be unset for non-sql destinations",
                 )
-            if self.connection_string is not None and str(self.connection_string).strip():
+            if self.connection_string is not None:
                 raise ValueError(
                     "destination.connection_string must be unset when destination_type is "
                     f"{self.destination_type.value}",

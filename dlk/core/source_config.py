@@ -36,9 +36,9 @@ class SourceConfig(BaseModel):
                 )
             if self.sql_dialect is None:
                 raise ValueError("source.sql_dialect is required when source_type is sql")
-            if self.s3_path is not None and str(self.s3_path).strip():
+            if self.s3_path is not None:
                 raise ValueError("source.s3_path must be unset when source_type is sql")
-            if self.glob_pattern is not None and str(self.glob_pattern).strip():
+            if self.glob_pattern is not None:
                 raise ValueError(
                     "source.glob_pattern must be unset when source_type is sql",
                 )
@@ -51,11 +51,11 @@ class SourceConfig(BaseModel):
                 raise ValueError("source.s3_path is required and must be non-empty")
             if self.sql_dialect is not None:
                 raise ValueError("source.sql_dialect must be unset when source_type is s3")
-            if self.connection_string is not None and str(self.connection_string).strip():
+            if self.connection_string is not None:
                 raise ValueError(
                     "source.connection_string must be unset when source_type is s3",
                 )
-            if self.table_or_query is not None and str(self.table_or_query).strip():
+            if self.table_or_query is not None:
                 raise ValueError(
                     "source.table_or_query must be unset when source_type is s3",
                 )

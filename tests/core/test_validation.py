@@ -151,6 +151,47 @@ def test_s3_source_requires_path_and_no_sql_fields() -> None:
         )
 
 
+def test_s3_source_rejects_any_sql_connection_string_value() -> None:
+    """Forbidden fields must be omitted (None), not blank strings."""
+    with pytest.raises(ValidationError, match="connection_string"):
+        SourceConfig(
+            source_type=SourceType.S3,
+            s3_path="s3://b/",
+            connection_string="   ",
+        )
+
+
+def test_s3_source_rejects_any_table_or_query_value() -> None:
+    with pytest.raises(ValidationError, match="table_or_query"):
+        SourceConfig(
+            source_type=SourceType.S3,
+            s3_path="s3://b/",
+            table_or_query="",
+        )
+
+
+def test_sql_source_rejects_any_s3_path_value() -> None:
+    with pytest.raises(ValidationError, match="s3_path"):
+        SourceConfig(
+            source_type=SourceType.SQL,
+            connection_string="postgresql:///",
+            table_or_query="SELECT 1",
+            sql_dialect=SqlDialect.POSTGRES,
+            s3_path="",
+        )
+
+
+def test_sql_source_rejects_any_glob_pattern_value() -> None:
+    with pytest.raises(ValidationError, match="glob_pattern"):
+        SourceConfig(
+            source_type=SourceType.SQL,
+            connection_string="postgresql:///",
+            table_or_query="SELECT 1",
+            sql_dialect=SqlDialect.POSTGRES,
+            glob_pattern="   ",
+        )
+
+
 def test_sql_destination_requires_dialect() -> None:
     with pytest.raises(ValidationError, match="sql_dialect"):
         LoadPlan(
@@ -170,6 +211,29 @@ def test_sql_destination_requires_dialect() -> None:
             ),
             extract=ExtractConfig(),
             load=LoadConfig(),
+        )
+
+
+def test_sql_destination_rejects_any_filesystem_url_value() -> None:
+    with pytest.raises(ValidationError, match="filesystem_url"):
+        DestinationConfig(
+            destination_type=DestinationType.SQL,
+            dataset_name="ds",
+            table_name="t",
+            connection_string="postgresql:///",
+            sql_dialect=SqlDialect.POSTGRES,
+            filesystem_url="",
+        )
+
+
+def test_filesystem_destination_rejects_any_connection_string_value() -> None:
+    with pytest.raises(ValidationError, match="connection_string"):
+        DestinationConfig(
+            destination_type=DestinationType.S3,
+            dataset_name="ds",
+            table_name="t",
+            filesystem_url="s3://out/",
+            connection_string="  ",
         )
 
 
