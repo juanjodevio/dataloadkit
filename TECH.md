@@ -7,7 +7,7 @@ status: DRAFT
 ## Core Technologies
 
 ### Backend
-- Language: Python 3.9+ (broad CPython 3.x compatibility; CI exercises lowest supported and latest stable, with optional intermediates)
+- Language: Python **3.9.2** through **3.14.x** (upper bound below **3.15**, matching **`dlt`**’s `requires-python`; CI exercises **3.9** and **latest stable**)
 - Framework: None (library-first design)
 - Database: 
   - Source: **Amazon Redshift** and **PostgreSQL** (MVP SQL sources)
