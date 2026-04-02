@@ -30,7 +30,7 @@ class LoadPlan(BaseModel):
             pk = self.extract.primary_key
             if not pk or not all(str(c).strip() for c in pk):
                 raise ValueError(
-                    "extract.primary_key must be a non-empty list of non-empty strings "
+                    "extract.primary_key must be a non-empty tuple of non-empty strings "
                     "when write_mode is merge",
                 )
         return self

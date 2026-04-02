@@ -13,7 +13,9 @@ class ExtractConfig(BaseModel):
     incremental: bool = False
     cursor_field: str | None = None
     chunk_size: int | None = None
-    primary_key: list[str] | None = None
+    # Tuple (not list): frozen models do not prevent in-place list mutation, which could
+    # invalidate merge invariants after LoadPlan construction.
+    primary_key: tuple[str, ...] | None = None
 
     @model_validator(mode="after")
     def _check_extract_invariants(self) -> ExtractConfig:

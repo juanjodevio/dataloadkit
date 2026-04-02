@@ -70,10 +70,7 @@ class DestinationConfig(BaseModel):
                     "destination.connection_string must be unset when destination_type is "
                     f"{self.destination_type.value}",
                 )
-            if (
-                self.file_format is not None
-                and self.file_format not in FILESYSTEM_WRITE_FORMATS
-            ):
+            if self.file_format is not None and self.file_format not in FILESYSTEM_WRITE_FORMATS:
                 allowed = sorted(f.value for f in FILESYSTEM_WRITE_FORMATS)
                 raise ValueError(
                     "destination.file_format for s3/sftp must be one of "

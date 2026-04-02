@@ -220,6 +220,32 @@ def test_merge_requires_primary_key() -> None:
         )
 
 
+def test_merge_primary_key_stored_as_immutable_tuple() -> None:
+    """Lists allow in-place mutation after validation; tuple does not."""
+    plan = LoadPlan(
+        pipeline_name="p",
+        source=SourceConfig(
+            source_type=SourceType.SQL,
+            connection_string="postgresql:///",
+            table_or_query="SELECT 1",
+            sql_dialect=SqlDialect.POSTGRES,
+        ),
+        destination=DestinationConfig(
+            destination_type=DestinationType.SQL,
+            dataset_name="ds",
+            table_name="t",
+            connection_string="postgresql:///",
+            sql_dialect=SqlDialect.POSTGRES,
+        ),
+        extract=ExtractConfig(primary_key=["id", "region"]),
+        load=LoadConfig(write_mode=WriteMode.MERGE),
+    )
+    pk = plan.extract.primary_key
+    assert isinstance(pk, tuple)
+    assert pk == ("id", "region")
+    assert not hasattr(pk, "clear")
+
+
 def test_chunk_size_positive() -> None:
     with pytest.raises(ValidationError, match="chunk_size"):
         ExtractConfig(chunk_size=0)
