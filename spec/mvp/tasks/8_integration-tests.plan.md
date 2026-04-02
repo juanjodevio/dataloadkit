@@ -63,7 +63,7 @@ Validate every MVP acceptance path end-to-end against real or controlled test in
 - [ ] **Step 2:** Create `tests/integration/conftest.py` with fixtures for: SQL connection string, S3 bucket URL, SFTP URL, test table seeding, cleanup.
 - [ ] **Step 3:** Create `tests/integration/test_sql_to_sql.py` — load from SQL table to SQL destination; verify rows arrive; test append and replace modes.
 - [ ] **Step 4:** Create `tests/integration/test_sql_to_s3.py` — load from SQL table to S3; verify file(s) written in expected format.
-- [ ] **Step 5:** Create `tests/integration/test_s3_to_sql.py` — load from S3 file(s) to SQL destination; verify rows arrive; test CSV, JSON, Parquet inputs.
+- [ ] **Step 5:** Create `tests/integration/test_s3_to_sql.py` — load from S3 file(s) to SQL destination; verify rows arrive; test CSV, JSONL, Parquet, and **JSON** (`.json` object and array-of-objects) inputs with **JSON→JSONL** preprocessing.
 - [ ] **Step 6:** Create `tests/integration/test_to_sftp.py` — load from SQL and S3 to SFTP; verify file(s) written.
 - [ ] **Step 7:** Create `tests/integration/test_incremental.py` — SQL source with `with_incremental(cursor_field)`; run twice; verify second run loads only new rows.
 - [ ] **Step 8:** Create `tests/integration/test_merge.py` — SQL source with `with_write_mode("merge")` and `with_primary_key([...])`; verify upsert behavior.

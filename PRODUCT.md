@@ -55,9 +55,12 @@ Allow a developer to load data from SQL (Redshift) or S3 into SQL, S3, or SFTP t
 
 ### Domain 2: S3 Source (dlt-backed)
 - Load files from S3 paths
-- Support CSV, JSON, Parquet formats
+- Support **CSV, Parquet, JSONL, and JSON** as S3 inputs:
+  - **CSV, Parquet, JSONL** map directly to dlt’s [filesystem verified source](https://dlthub.com/docs/dlt-ecosystem/verified-sources/filesystem/basic) readers.
+  - **JSON** (`.json` or explicit format): MVP includes a **JSON→JSONL preprocessing** step using **stdlib `json` only**—normalize to newline-delimited JSON objects, then feed **dlt’s JSONL reader** (no second extract/load engine; no custom table extraction).
 - Support glob patterns
 - Infer schema when possible
+- **JSON preprocessing limits (MVP):** the `.json` file must be readable in one pass by **`json.loads`** (whole document in memory); unsupported shapes (e.g. array of scalars, non-object array elements) fail with a clear error; document this limit in user-facing docs
 
 ### Domain 3: Destinations (dlt-backed)
 
@@ -79,6 +82,7 @@ Allow a developer to load data from SQL (Redshift) or S3 into SQL, S3, or SFTP t
 
 ## Out of Scope
 - SFTP as a source
+- **S3 JSON:** streaming parse of arbitrarily large single `.json` files without loading the document into memory (MVP preprocessing may require a documented size/memory bound)
 - Raw file transfer or sync semantics
 - Real-time or streaming ingestion
 - Complex transformations
@@ -117,8 +121,8 @@ Allow a developer to load data from SQL (Redshift) or S3 into SQL, S3, or SFTP t
 ### Domain 2: S3 Source
 - Map to dlt filesystem or S3-oriented source patterns as appropriate
 - Accept S3 paths and glob patterns
-- Support CSV, JSON, Parquet formats
-- Infer format from file extension
+- Support **CSV, Parquet, JSONL** (native dlt filesystem readers) and **JSON** via **JSON→JSONL preprocessing** then dlt’s JSONL reader
+- Infer format from file extension where unambiguous (e.g. `.csv`, `.jsonl`, `.json`, `.parquet`); **`.json`** triggers preprocessing, **`.jsonl`** does not
 - Support multiple file ingestion per run
 
 ### Domain 3: Destinations
@@ -218,5 +222,6 @@ It provides a clean, fluent API for ingestion powered by dlt, inspired by awswra
 - Use a unified LoadPlan abstraction
 - Isolate dlt integration in a single adapter layer
 - Treat **all sources and all destinations** consistently via dlt (no parallel non-dlt extract/load paths for MVP scope)
+- For S3 reads, use dlt’s filesystem readers for **CSV, Parquet, and JSONL**; for **JSON** documents, use **stdlib `json`** only to normalize to **JSONL**, then the same dlt **JSONL** path—no custom extract engine or non-dlt loaders
 - Optimize for developer experience over flexibility
 - **Runtime:** target **CPython 3.9+**; full matrix, dependencies, and dev tooling live in **`TECH.md`**

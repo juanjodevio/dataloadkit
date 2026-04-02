@@ -70,7 +70,7 @@ Implement the fluent builder layer (`dlk/builders/`) that collects user configur
 - [ ] **Step 4:** In `.load()`, call `dlk.core.validation.validate_plan(plan)` before adapter execution; surface validation errors as clear exceptions.
 - [ ] **Step 5:** Export builders from `dlk/builders/__init__.py`.
 - [ ] **Step 6:** Add unit tests in `tests/builders/test_sql_source_builder.py` — chain construction, each modifier, each destination type, validation failures (no destination, merge without PK), mock adapter to verify LoadPlan shape.
-- [ ] **Step 7:** Add unit tests in `tests/builders/test_s3_source_builder.py` — same coverage for S3 paths.
+- [ ] **Step 7:** Add unit tests in `tests/builders/test_s3_source_builder.py` — same coverage for S3 paths; include **`with_format("json")`** / inferred `.json` so `LoadPlan` carries format **json** for the adapter.
 - [ ] **Step 8:** Verify: `uv run ruff check`, `uv run mypy dlk`, `uv run pytest`.
 
 ## Other dependencies

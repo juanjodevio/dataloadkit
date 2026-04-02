@@ -34,7 +34,7 @@ Define the shared data model that every other module imports: `SourceConfig`, `D
 
 - [ ] `dlk/core/` contains dataclass definitions for `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`, `LoadPlan`.
 - [ ] `dlk/results/` contains `LoadResult` dataclass with fields for row counts, execution metadata, and error info.
-- [ ] Enums or literals defined for: source type (sql, s3), destination type (sql, s3, sftp), write mode (append, replace, merge), file format (parquet, csv, jsonl).
+- [ ] Enums or literals defined for: source type (sql, s3), destination type (sql, s3, sftp), write mode (append, replace, merge), file format for S3 read (parquet, csv, jsonl, **json** where `json` triggers preprocessing per **`PRODUCT.md`**).
 - [ ] Validation functions in `dlk/core/` enforce: required fields present, merge requires primary key, destination defined, format valid for destination type.
 - [ ] Unit tests cover happy-path construction and all validation error paths.
 - [ ] `uv run ruff check`, `uv run mypy dlk`, `uv run pytest` all green.
@@ -57,7 +57,7 @@ Define the shared data model that every other module imports: `SourceConfig`, `D
 ## Steps
 
 - [ ] **Step 1:** Define enums/literals in `dlk/core/types.py`: `SourceType`, `DestinationType`, `WriteMode`, `FileFormat`.
-- [ ] **Step 2:** Define `SourceConfig` dataclass in `dlk/core/source_config.py` — fields: source type, connection string or S3 path, table/query, glob pattern, file format (optional), credentials (optional dict).
+- [ ] **Step 2:** Define `SourceConfig` dataclass in `dlk/core/source_config.py` — fields: source type, connection string or S3 path, table/query, glob pattern, file format (optional: csv, parquet, jsonl, **json**), credentials (optional dict).
 - [ ] **Step 3:** Define `DestinationConfig` dataclass in `dlk/core/destination_config.py` — fields: destination type, connection string or path/URL, dataset name, table name, file format (optional for filesystem), credentials (optional dict).
 - [ ] **Step 4:** Define `ExtractConfig` dataclass in `dlk/core/extract_config.py` — fields: incremental (bool), cursor field (optional), chunk size (optional), primary key (optional list of str).
 - [ ] **Step 5:** Define `LoadConfig` dataclass in `dlk/core/load_config.py` — fields: write mode (default append), partitioning (optional).

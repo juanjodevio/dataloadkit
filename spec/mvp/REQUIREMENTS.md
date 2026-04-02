@@ -67,6 +67,7 @@ Included:
 - The system shall return a structured `LoadResult` after execution.
 - The system shall support SQL (Redshift / Postgres-compatible) and S3 as sources, each mapped to dlt source patterns.
 - The system shall support SQL, S3 (filesystem), and SFTP (filesystem via dlt/fsspec) as destinations, each mapped to dlt destination patterns.
+- The system shall support **JSON** S3 inputs only through **JSON→JSONL** normalization (stdlib `json`) before dlt’s JSONL reader, as specified in **`PRODUCT.md`** and **`spec/mvp/DESIGN.md`**.
 
 ---
 
@@ -88,7 +89,7 @@ Included:
 - If write mode is `append`, the system shall append data.
 - If write mode is `merge`, the system shall upsert based on a configured primary key (primary key shall be required when merge is selected, per **`PRODUCT.md`**).
 - If SFTP destination is used, the system shall write data using filesystem protocol via dlt.
-- If S3 source input format is not specified, the system shall infer format from file extension where possible (CSV, JSON, Parquet per **`PRODUCT.md`**).
+- If S3 source input format is not specified, the system shall infer format from file extension where possible (CSV, JSONL, JSON, Parquet per **`PRODUCT.md`**); **`.json`** shall trigger **JSON→JSONL** preprocessing before dlt’s JSONL reader.
 
 ---
 
@@ -104,6 +105,7 @@ Included:
 
 - Where SQL incremental loading is enabled, the system shall require a cursor field.
 - Where S3 source is used, the system shall support glob patterns and multiple files per run where applicable (per **`PRODUCT.md`**).
+- Where S3 source format is **JSON** (explicit or inferred from `.json`), the system shall normalize content to **JSONL** using **stdlib `json` only** (single object → one line; array of objects → one line per object), then load via dlt’s **JSONL** filesystem reader (per **`spec/mvp/DESIGN.md`**).
 - Where filesystem destinations (S3, SFTP) are used, the system shall output structured datasets (not raw file-copy semantics).
 - Where format is specified for filesystem destinations, the system shall respect the requested output format (Parquet, CSV, JSONL per **`PRODUCT.md`**).
 - Where S3 filesystem destination is used, the system shall support partitioning and dataset layout options aligned with **`PRODUCT.md`**.
@@ -125,7 +127,7 @@ Included:
   - dataset names
   - table names
   - file paths (S3/SFTP)
-  - format types (parquet, csv, jsonl)
+  - format types (parquet, csv, jsonl, json for S3 source where `json` means “document JSON” before JSONL normalization)
 
 - The system shall not persist user configuration internally.
 
@@ -161,7 +163,7 @@ dlk.from_s3(...)
 
 ### File formats
 
-- **S3 source (read):** CSV, JSON, Parquet (per **`PRODUCT.md`**).
+- **S3 source (read):** CSV, JSONL, Parquet via dlt filesystem readers; **JSON** (`.json` / explicit) via **JSON→JSONL preprocessing** (stdlib `json`) then dlt **JSONL** reader (per **`PRODUCT.md`**, **`spec/mvp/DESIGN.md`**).
 - **Filesystem destinations (S3, SFTP write):** Parquet, CSV, JSONL (per **`PRODUCT.md`**).
 
 ---
@@ -220,6 +222,7 @@ Aligned with **`PRODUCT.md`** MVP release standard:
 - Empty datasets
 - Large datasets exceeding memory
 - Unsupported file formats
+- Malformed JSON or JSON array elements that are not objects (JSON→JSONL preprocessing)
 - Invalid SQL query
 - Missing required parameters
 - Network failures during execution

@@ -27,6 +27,7 @@ In scope:
 - a normalized `LoadPlan` that captures source, extraction, and destination config
 - a `DltAdapter` that translates `LoadPlan` into executable dlt resources and pipeline runs
 - result normalization into a `LoadResult`
+- **JSON→JSONL preprocessing** for S3 `.json` inputs (stdlib `json` only; then dlt JSONL reader)
 
 Out of scope:
 - SFTP as a source
@@ -48,11 +49,11 @@ Main flow:
    - `with_incremental(...)`
    - `with_write_mode(...)`
    - `with_primary_key(...)`
-   - `with_format(...)`
+   - `with_format(...)` (S3 source: includes `json` vs `jsonl`—`json` selects preprocessing)
 5. User calls `.load()`
 6. Builder / `core` validates required config (dataclass invariants and cross-field rules)
 7. Terminal step materializes a `LoadPlan` (`SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`)
-8. `DltAdapter` maps the `LoadPlan` to dlt pipeline + source/resource configuration
+8. `DltAdapter` maps the `LoadPlan` to dlt pipeline + source/resource configuration (if S3 source format is **JSON**, run **JSON→JSONL** normalization first—see below)
 9. dlt executes the load
 10. dlk converts the execution output into `LoadResult`
 11. User receives structured metadata about the run
@@ -67,12 +68,26 @@ The solution is a layered Python library with a small public API and a single in
 - **`connectors/`** — thin SQL/S3 → dlt source/resource wiring from `SourceConfig` (no extract outside dlt; used by the adapter).
 - **`adapters/`** — `DltAdapter` only: maps `LoadPlan` to dlt pipeline + sources + destinations and runs execution.
 - **`results/`** — `LoadResult` and helpers (normalized run metadata for callers).
-- **`utils/`** — format detection, paths/globs, schema/credential helpers shared by builders and connectors.
+- **`utils/`** — format detection, paths/globs, schema/credential helpers, and **JSON→JSONL normalization** (stdlib `json` only) shared by builders and the adapter.
+
+### JSON → JSONL preprocessing (MVP)
+
+**Why:** dlt’s filesystem source exposes **JSONL**, not arbitrary JSON documents. MVP still accepts `.json` by normalizing to JSONL so the **same dlt JSONL reader** runs—no second extract engine.
+
+**Trigger:** `SourceConfig` / inferred extension indicates **JSON** (not **JSONL**).
+
+**Behavior (stdlib `json` only):**
+- **Single JSON object** → one output line (compact JSON object, UTF-8).
+- **JSON array of objects** → one output line per element (each element must be a JSON object; otherwise fail with a clear error).
+
+**Where it runs:** `utils/` exposes a pure function (e.g. `json_document_to_jsonl_lines(bytes | str) -> bytes` or generator of lines). **`DltAdapter`** (or the S3 connector wiring it calls) invokes this **before** building the resource dlt treats as **JSONL** (e.g. in-memory buffer or tempfile; document MVP memory bound in **`PRODUCT.md`**).
+
+**Out of MVP:** incremental/streaming parse of huge `.json` without full-file read; arrays of non-objects.
 
 ### Data materialization
 - Builders collect user input; validation errors surface before `.load()` commits.
 - `.load()` (or equivalent terminal step) builds a **`LoadPlan`** that bundles `SourceConfig`, `DestinationConfig`, and extraction/load options (`ExtractConfig` / `LoadConfig` as in **`PRODUCT.md`**).
-- **`DltAdapter`** uses **`connectors/`** for source shape and dlt for both extract and load—no second engine (per **`PRODUCT.md`** implementation guidance).
+- **`DltAdapter`** uses **`connectors/`** for source shape and dlt for both extract and load—no second engine (per **`PRODUCT.md`** implementation guidance). For S3 **JSON**, the adapter applies **`utils/`** JSON→JSONL normalization first, then the same dlt **JSONL** extract path.
 
 ### Credentials and security
 - Align with **`PRODUCT.md`** / **`TECH.md`**: env-based and explicit credentials; SQLAlchemy for SQL; AWS IAM preferred for S3; SFTP via fsspec-style URLs/config. dlk does not persist secrets; avoid logging sensitive values.
@@ -90,7 +105,7 @@ User code
   -> dlk.from_sql(...) / dlk.from_s3(...)
   -> builder chain
   -> LoadPlan (SourceConfig, DestinationConfig, ExtractConfig, LoadConfig)
-  -> DltAdapter (+ connectors/ for source wiring)
+  -> DltAdapter (+ connectors/ for source wiring; JSON→JSONL if needed)
   -> dlt pipeline execution
   -> LoadResult
 ```

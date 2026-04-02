@@ -110,6 +110,7 @@ Owns:
 - path parsing
 - schema helpers
 - credential helpers
+- **JSON→JSONL** normalization for S3 `.json` inputs (stdlib `json` only; see **`PRODUCT.md`** / **`spec/mvp/DESIGN.md`**)
 
 ---
 

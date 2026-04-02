@@ -34,12 +34,13 @@ Implement `DltAdapter` in `dlk/adapters/` — the single execution engine that r
 
 - [ ] `dlk/adapters/dlt_adapter.py` exists with a class or function (e.g. `DltAdapter.execute(plan: LoadPlan) -> LoadResult`).
 - [ ] Adapter uses `dlk/connectors/sql.py` for SQL sources and `dlk/connectors/s3.py` for S3 sources.
+- [ ] For S3 sources with file format **JSON** (per `SourceConfig` / inference), adapter reads object bytes (via fsspec/S3 or path the connector expects), runs `dlk.utils.json_to_jsonl`, then wires **JSONL** into dlt (per **`spec/mvp/DESIGN.md`**); **JSONL** and other formats skip preprocessing.
 - [ ] Adapter maps `DestinationConfig` to the correct dlt destination: SQL (database), S3 (filesystem), SFTP (filesystem with SFTP protocol).
 - [ ] Adapter maps `LoadConfig.write_mode` to dlt write disposition (append, replace, merge).
 - [ ] Adapter passes credentials through to dlt without persisting or logging them.
 - [ ] Adapter converts dlt execution output into `LoadResult` (success, row count, timing, error).
 - [ ] On dlt failure, adapter wraps the error with enough context and raises or returns it.
-- [ ] Unit tests with mocked dlt verify: source selection, destination mapping, write mode mapping, error wrapping.
+- [ ] Unit tests with mocked dlt verify: source selection, destination mapping, write mode mapping, error wrapping, **S3 + JSON → JSONL path** (preprocess then JSONL reader).
 - [ ] `uv run ruff check`, `uv run mypy dlk`, `uv run pytest` all green.
 
 ## Inter-task dependencies
@@ -63,6 +64,7 @@ Implement `DltAdapter` in `dlk/adapters/` — the single execution engine that r
 
 - [ ] **Step 1:** Create `dlk/adapters/dlt_adapter.py` with `DltAdapter` class and `execute(plan: LoadPlan) -> LoadResult` method.
 - [ ] **Step 2:** Implement source resolution: dispatch to `build_sql_source` or `build_s3_source` based on `plan.source_config.source_type`.
+- [ ] **Step 2b:** For S3 + **JSON** format, fetch file content (bounded by **`PRODUCT.md`** MVP memory note), call `json_document_to_jsonl`, feed result into the same JSONL-based source path dlt uses for `.jsonl` files (implementation detail: tempfile vs in-memory buffer—document choice).
 - [ ] **Step 3:** Implement destination resolution — map `DestinationType.sql` to `dlt.destinations.postgres` (or Redshift-compatible), `DestinationType.s3` to `dlt.destinations.filesystem` with S3 bucket URL, `DestinationType.sftp` to `dlt.destinations.filesystem` with SFTP URL.
 - [ ] **Step 4:** Map `LoadConfig.write_mode` → dlt write disposition string (`append`, `replace`, `merge`).
 - [ ] **Step 5:** Compose `dlt.pipeline(...)` with pipeline name from `LoadPlan`, destination, and dataset name from `DestinationConfig`.
@@ -71,7 +73,7 @@ Implement `DltAdapter` in `dlk/adapters/` — the single execution engine that r
 - [ ] **Step 8:** Wrap dlt exceptions with contextual error messages; ensure no credential leakage in error output.
 - [ ] **Step 9:** Add stdlib `logging` calls at key points (plan received, pipeline started, execution complete/failed).
 - [ ] **Step 10:** Export from `dlk/adapters/__init__.py`.
-- [ ] **Step 11:** Add unit tests in `tests/adapters/test_dlt_adapter.py` — mock `dlt.pipeline`, connectors; verify: SQL source dispatch, S3 source dispatch, each destination type, each write mode, error wrapping, LoadResult population.
+- [ ] **Step 11:** Add unit tests in `tests/adapters/test_dlt_adapter.py` — mock `dlt.pipeline`, connectors; verify: SQL source dispatch, S3 source dispatch (csv/jsonl/parquet/json), each destination type, each write mode, error wrapping, LoadResult population, JSON preprocessing invoked when format is JSON.
 - [ ] **Step 12:** Verify: `uv run ruff check`, `uv run mypy dlk`, `uv run pytest`.
 
 ## Other dependencies
@@ -100,3 +102,4 @@ Implement `DltAdapter` in `dlk/adapters/` — the single execution engine that r
 - SFTP destination uses the same `dlt.destinations.filesystem` as S3 but with an `sftp://` URL — confirm dlt/fsspec support during implementation.
 - Filesystem destination format (parquet, csv, jsonl) comes from `DestinationConfig.file_format`; pass to dlt's `loader_file_format` parameter.
 - Partitioning support for S3 destination (REQUIREMENTS optional feature) — include the parameter passthrough if dlt supports it simply; otherwise note as follow-up.
+- JSON preprocessing must respect **`PRODUCT.md`** memory/size limits; fail clearly if content exceeds MVP bounds.
