@@ -71,7 +71,7 @@ Implement thin helpers in `dlk/connectors/` that translate a `SourceConfig` (typ
 
 ## Other dependencies
 
-- **Requires:** Understanding of `dlt[redshift]` source API (sql_database source).
+- **Requires:** Understanding of dlt’s SQL/Redshift source API (installed via **`dataloadkit[redshift]`** or **`[mvp]`** per **`TECH.md`**).
 - **External:** dlt installed via `pyproject.toml` (from scaffold task).
 
 ## Affected files / modules

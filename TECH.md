@@ -157,6 +157,23 @@ Environments:
 
 ---
 
+## Optional dependencies (dlt extras)
+
+`dataloadkit` maps **dlt’s optional stacks** to **`[project.optional-dependencies]`** in `pyproject.toml` so installs stay explicit and match dlt’s own extra names:
+
+| Extra on `dataloadkit` | Pulls (PEP 508) | Use when |
+|------------------------|-----------------|----------|
+| `redshift` | `dlt[redshift]` | SQL / Redshift-style database sources and destinations |
+| `filesystem` | `dlt[filesystem]` | S3 (and other filesystem) sources/destinations via dlt filesystem |
+| `sftp` | `dlt[sftp]` | SFTP URLs with filesystem destination ([paramiko](https://dlthub.com/docs/dlt-ecosystem/destinations/filesystem)) |
+| `mvp` | `dlt[redshift,filesystem,sftp]` | Full **MVP** surface in **`PRODUCT.md`** (recommended default for library consumers) |
+
+- **Base** runtime dependency: pin **`dlt`** with a floor version only (no brackets in `dependencies`); consumers choose extras, or install **`dataloadkit[mvp]`** for the documented MVP.
+- **Development / CI:** use **`uv sync --extra mvp`** (or `--all-extras` if you want every optional stack resolvable in the lockfile) so tests and examples match MVP scope.
+- Do not duplicate ad-hoc `dlt[...]` strings in docs without pointing to these named extras.
+
+---
+
 ## Notes
 
 - dlt must be isolated within the **adapter** layer; **`connectors/`** only shapes dlt sources from config (see `STRUCTURE.md`) and is invoked from the adapter, not as a parallel runtime

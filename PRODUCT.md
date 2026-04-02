@@ -225,3 +225,4 @@ It provides a clean, fluent API for ingestion powered by dlt, inspired by awswra
 - For S3 reads, use dlt’s filesystem readers for **CSV, Parquet, and JSONL**; for **JSON** documents, use **stdlib `json`** only to normalize to **JSONL**, then the same dlt **JSONL** path—no custom extract engine or non-dlt loaders
 - Optimize for developer experience over flexibility
 - **Runtime:** target **CPython 3.9+**; full matrix, dependencies, and dev tooling live in **`TECH.md`**
+- **Packaging:** expose dlt’s optional stacks as **`dataloadkit`** optional extras (`redshift`, `filesystem`, `sftp`, bundled **`mvp`**) per **`TECH.md`**; document **`pip install dataloadkit[mvp]`** (or `uv add 'dataloadkit[mvp]'`) for the full MVP install

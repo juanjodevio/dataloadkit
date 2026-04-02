@@ -32,7 +32,7 @@ Set up the repository skeleton so every subsequent task has a working package, d
 
 ## Definition of done
 
-- [ ] `pyproject.toml` exists with project metadata, `requires-python = ">=3.9"`, hatchling build backend, and dev/test dependency groups (dlt, ruff, mypy, pytest at minimum).
+- [ ] `pyproject.toml` exists with project metadata, `requires-python = ">=3.9"`, hatchling build backend, base runtime **`dlt>=…`** (version floor only, no `[]` on the base line), **`[project.optional-dependencies]`** mirroring dlt (see **`TECH.md`**): `redshift` → `dlt[redshift]`, `filesystem` → `dlt[filesystem]`, `sftp` → `dlt[sftp]`, **`mvp`** → `dlt[redshift,filesystem,sftp]`; dev **dependency group** (or legacy dev deps): ruff, mypy, pytest.
 - [ ] `uv.lock` committed and `uv sync` succeeds.
 - [ ] `dlk/` package exists with `__init__.py` (can be nearly empty; exports version).
 - [ ] Sub-packages exist as empty `__init__.py` stubs: `api/`, `builders/`, `core/`, `adapters/`, `connectors/`, `results/`, `utils/`.
@@ -60,8 +60,8 @@ No upstream dependencies — this is the first task.
 
 ## Steps
 
-- [ ] **Step 1:** Create `pyproject.toml` — project name `dataloadkit`, version `0.1.0`, `requires-python = ">=3.9"`, hatchling build backend, dependency on `dlt[redshift,filesystem]`; dev extras: `ruff`, `mypy`, `pytest`.
-- [ ] **Step 2:** Run `uv lock && uv sync` to generate lockfile and venv.
+- [ ] **Step 1:** Create `pyproject.toml` — project name `dataloadkit`, version `0.1.0`, `requires-python = ">=3.9"`, hatchling build backend; **`dependencies`:** `dlt>=<floor>` only; **`[project.optional-dependencies]`:** `redshift = ["dlt[redshift]"]`, `filesystem = ["dlt[filesystem]"]`, `sftp = ["dlt[sftp]"]` ([SFTP / paramiko](https://dlthub.com/docs/dlt-ecosystem/destinations/filesystem)), `mvp = ["dlt[redshift,filesystem,sftp]"]`; dev tools via **`[dependency-groups]`** `dev` = `ruff`, `mypy`, `pytest` (or equivalent per uv docs).
+- [ ] **Step 2:** Run **`uv lock --extra mvp`** then **`uv sync --extra mvp --group dev`** (or project’s chosen groups) so the lockfile and local env include the full MVP dlt stack; document that bare `uv sync` without extras only installs base `dlt`.
 - [ ] **Step 3:** Create `dlk/__init__.py` with `__version__ = "0.1.0"`.
 - [ ] **Step 4:** Create empty sub-package stubs: `dlk/api/__init__.py`, `dlk/builders/__init__.py`, `dlk/core/__init__.py`, `dlk/adapters/__init__.py`, `dlk/connectors/__init__.py`, `dlk/results/__init__.py`, `dlk/utils/__init__.py`.
 - [ ] **Step 5:** Create `tests/__init__.py` and `tests/test_import.py` (`import dlk; assert dlk.__version__`).
@@ -69,8 +69,8 @@ No upstream dependencies — this is the first task.
 - [ ] **Step 7:** Add `.gitignore` (Python, `__pycache__`, `.venv`, `dist/`, `.mypy_cache`, `.ruff_cache`).
 - [ ] **Step 8:** Add `ruff.toml` or `[tool.ruff]` in `pyproject.toml` with sensible defaults for the project.
 - [ ] **Step 9:** Add `mypy` config section in `pyproject.toml` (strict optional, Python 3.9 target).
-- [ ] **Step 10:** Add `.github/workflows/ci.yml` — matrix on Python 3.9 + latest stable; steps: `uv sync`, `ruff check`, `ruff format --check`, `mypy dlk`, `pytest`.
-- [ ] **Step 11:** Verify locally: `uv run ruff check`, `uv run mypy dlk`, `uv run pytest` all green.
+- [ ] **Step 10:** Add `.github/workflows/ci.yml` — matrix on Python 3.9 + latest stable; steps: **`uv sync --extra mvp --group dev`** (or `--all-extras` if policy locks all optional stacks), then `ruff check`, `ruff format --check`, `mypy dlk`, `pytest`.
+- [ ] **Step 11:** Verify locally (with **`mvp`** extra installed): `uv run ruff check`, `uv run mypy dlk`, `uv run pytest` all green.
 
 ## Other dependencies
 
@@ -97,9 +97,10 @@ No upstream dependencies — this is the first task.
 
 ### Manual
 
-- `uv sync` from a clean clone succeeds on Python 3.9 and latest stable.
+- `uv sync --extra mvp --group dev` from a clean clone succeeds on Python 3.9 and latest stable.
 
 ## Notes
 
-- Keep `dlt[redshift,filesystem]` as the primary runtime dependency; exact extras may adjust when connector tasks land.
+- **`mvp`** extra bundles **`dlt[redshift,filesystem,sftp]`**; consumers needing only part of MVP can install **`dataloadkit[redshift]`**, **`[filesystem]`**, **`[sftp]`** in any combination (pip/uv union extras on `dlt`). Omitting **`sftp`** when using SFTP URLs breaks **`to_sftp`** (no paramiko).
+- Align naming and tables with **`TECH.md`** → **Optional dependencies (dlt extras)**.
 - Do not pin dlt to a narrow range yet — use `>=` with a reasonable floor based on current stable.

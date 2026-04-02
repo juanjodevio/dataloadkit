@@ -74,7 +74,7 @@ Implement thin helpers in `dlk/connectors/` that translate a `SourceConfig` (typ
 ## Other dependencies
 
 - **Requires:** Understanding of dlt's filesystem source API and readers.
-- **External:** dlt installed with `[filesystem]` extra (from scaffold task).
+- **External:** **`dataloadkit[filesystem]`** or **`[mvp]`** installed (see **`TECH.md`** / scaffold `pyproject.toml`).
 
 ## Affected files / modules
 

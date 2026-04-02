@@ -78,7 +78,7 @@ Implement `DltAdapter` in `dlk/adapters/` — the single execution engine that r
 
 ## Other dependencies
 
-- **Requires:** dlt installed with `[redshift,filesystem]` extras.
+- **Requires:** Environment installs **`dataloadkit[mvp]`** (or the matching subset of **`dataloadkit[redshift,filesystem,sftp]`**) per **`TECH.md`** optional extras.
 - **External:** No live infra needed for unit tests (mock dlt).
 
 ## Affected files / modules
