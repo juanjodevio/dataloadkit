@@ -114,7 +114,7 @@ Environments:
 - All data movement must go through dlt pipelines
 - No custom execution engines or transfer logic
 - SFTP must be handled via dlt filesystem destination
-- Library must remain lightweight (no heavy runtime dependencies)
+- Library must remain lightweight; **Pydantic** is an explicit dependency for config/plan models and validation (see **Coding preferences**)
 - Python-only (no multi-language support)
 - Source wiring lives in **`connectors/`** (per `STRUCTURE.md`): translate `SourceConfig` into dlt source/resource material; **`adapters/`** owns execution and composes connectors + dlt—no second extract path
 
@@ -123,7 +123,7 @@ Environments:
 ## Coding Preferences
 
 - Use type hints everywhere
-- **Config and plan models:** use **`dataclasses`** (stdlib) for `SourceConfig`, `DestinationConfig`, `LoadPlan`, and related types; keep validation explicit in `core/` (no Pydantic as a **required** dlk dependency for these models)
+- **Config and plan models:** use **Pydantic v2** (`BaseModel`, `frozen=True`, `extra="forbid"`) for `SourceConfig`, `DestinationConfig`, `ExtractConfig`, `LoadConfig`, `LoadPlan`, and `LoadResult`; express cross-field rules with `model_validator`. **`eval-type-backport`** is required on **Python 3.9** so modern union/list annotations work with Pydantic’s type evaluation. If any code bypasses validation (e.g. via `model_construct`), re-validation belongs in the execution layer via `LoadPlan.model_validate(plan.model_dump(mode="python"))`. Public errors: `pydantic.ValidationError` (re-exported as `dlk.core.ValidationError`).
 - Favor composition over inheritance
 - Avoid hidden side effects
 - Keep public API minimal and stable

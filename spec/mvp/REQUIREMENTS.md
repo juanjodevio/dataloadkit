@@ -114,7 +114,7 @@ Included:
 
 ## Data Requirements
 
-- Configuration and plan types shall be **stdlib `dataclasses`** with validation in `core/` (see **`PRODUCT.md`**, **`TECH.md`**, **`spec/mvp/DESIGN.md`**).
+- Configuration and plan types shall be **Pydantic `BaseModel` instances** (frozen, validated) with rules in `core/` (see **`PRODUCT.md`**, **`TECH.md`**, **`spec/mvp/DESIGN.md`**).
 - The system shall define:
   - `SourceConfig`
   - `DestinationConfig`

@@ -1,4 +1,6 @@
-"""Core domain models and validation."""
+"""Core domain models."""
+
+from pydantic import ValidationError
 
 from dlk.core.destination_config import DestinationConfig
 from dlk.core.extract_config import ExtractConfig
@@ -13,7 +15,6 @@ from dlk.core.types import (
     SqlDialect,
     WriteMode,
 )
-from dlk.core.validation import ValidationError, validate_load_plan
 
 __all__ = [
     "FILESYSTEM_WRITE_FORMATS",
@@ -28,5 +29,4 @@ __all__ = [
     "SqlDialect",
     "ValidationError",
     "WriteMode",
-    "validate_load_plan",
 ]

@@ -1,4 +1,4 @@
-"""Validation rules for :func:`validate_load_plan`."""
+"""Validation rules for load plans (Pydantic model validators)."""
 
 from __future__ import annotations
 
@@ -13,10 +13,9 @@ from dlk.core import (
     SourceConfig,
     SourceType,
     SqlDialect,
-    ValidationError,
     WriteMode,
-    validate_load_plan,
 )
+from pydantic import ValidationError
 
 
 def _valid_sql_to_sql() -> LoadPlan:
@@ -41,7 +40,7 @@ def _valid_sql_to_sql() -> LoadPlan:
 
 
 def test_validate_happy_sql_to_sql() -> None:
-    validate_load_plan(_valid_sql_to_sql())
+    _valid_sql_to_sql()
 
 
 def test_validate_happy_s3_to_s3_parquet() -> None:
@@ -58,269 +57,194 @@ def test_validate_happy_s3_to_s3_parquet() -> None:
         extract=ExtractConfig(),
         load=LoadConfig(),
     )
-    validate_load_plan(plan)
+    assert plan.pipeline_name == "s3-load"
 
 
 def test_pipeline_name_required() -> None:
     base = _valid_sql_to_sql()
-    plan = LoadPlan(
-        pipeline_name="   ",
-        source=base.source,
-        destination=base.destination,
-        extract=base.extract,
-        load=base.load,
-    )
     with pytest.raises(ValidationError, match="pipeline_name"):
-        validate_load_plan(plan)
+        LoadPlan(
+            pipeline_name="   ",
+            source=base.source,
+            destination=base.destination,
+            extract=base.extract,
+            load=base.load,
+        )
 
 
 def test_sql_source_requires_dialect_and_connection() -> None:
-    plan = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(
-            source_type=SourceType.SQL,
-            connection_string="postgresql:///",
-            table_or_query="SELECT 1",
-            sql_dialect=None,
-        ),
-        destination=DestinationConfig(
-            destination_type=DestinationType.SQL,
-            dataset_name="ds",
-            table_name="t",
-            connection_string="postgresql:///",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        extract=ExtractConfig(),
-        load=LoadConfig(),
-    )
     with pytest.raises(ValidationError, match="sql_dialect"):
-        validate_load_plan(plan)
+        LoadPlan(
+            pipeline_name="p",
+            source=SourceConfig(
+                source_type=SourceType.SQL,
+                connection_string="postgresql:///",
+                table_or_query="SELECT 1",
+                sql_dialect=None,
+            ),
+            destination=DestinationConfig(
+                destination_type=DestinationType.SQL,
+                dataset_name="ds",
+                table_name="t",
+                connection_string="postgresql:///",
+                sql_dialect=SqlDialect.POSTGRES,
+            ),
+            extract=ExtractConfig(),
+            load=LoadConfig(),
+        )
 
 
 def test_sql_source_rejects_s3_path() -> None:
-    plan = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(
-            source_type=SourceType.SQL,
-            connection_string="postgresql:///",
-            table_or_query="SELECT 1",
-            sql_dialect=SqlDialect.POSTGRES,
-            s3_path="s3://x",
-        ),
-        destination=DestinationConfig(
-            destination_type=DestinationType.SQL,
-            dataset_name="ds",
-            table_name="t",
-            connection_string="postgresql:///",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        extract=ExtractConfig(),
-        load=LoadConfig(),
-    )
     with pytest.raises(ValidationError, match="s3_path"):
-        validate_load_plan(plan)
+        LoadPlan(
+            pipeline_name="p",
+            source=SourceConfig(
+                source_type=SourceType.SQL,
+                connection_string="postgresql:///",
+                table_or_query="SELECT 1",
+                sql_dialect=SqlDialect.POSTGRES,
+                s3_path="s3://x",
+            ),
+            destination=DestinationConfig(
+                destination_type=DestinationType.SQL,
+                dataset_name="ds",
+                table_name="t",
+                connection_string="postgresql:///",
+                sql_dialect=SqlDialect.POSTGRES,
+            ),
+            extract=ExtractConfig(),
+            load=LoadConfig(),
+        )
 
 
 def test_s3_source_requires_path_and_no_sql_fields() -> None:
-    plan = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(source_type=SourceType.S3, s3_path=""),
-        destination=DestinationConfig(
-            destination_type=DestinationType.SQL,
-            dataset_name="ds",
-            table_name="t",
-            connection_string="postgresql:///",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        extract=ExtractConfig(),
-        load=LoadConfig(),
-    )
     with pytest.raises(ValidationError, match="s3_path"):
-        validate_load_plan(plan)
+        SourceConfig(source_type=SourceType.S3, s3_path="")
 
-    plan2 = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(
+    with pytest.raises(ValidationError, match="sql_dialect"):
+        SourceConfig(
             source_type=SourceType.S3,
             s3_path="s3://b/",
             sql_dialect=SqlDialect.POSTGRES,
-        ),
-        destination=DestinationConfig(
-            destination_type=DestinationType.SQL,
-            dataset_name="ds",
-            table_name="t",
-            connection_string="postgresql:///",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        extract=ExtractConfig(),
-        load=LoadConfig(),
-    )
-    with pytest.raises(ValidationError, match="sql_dialect"):
-        validate_load_plan(plan2)
+        )
 
 
 def test_sql_destination_requires_dialect() -> None:
-    plan = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(
-            source_type=SourceType.SQL,
-            connection_string="postgresql:///",
-            table_or_query="SELECT 1",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        destination=DestinationConfig(
-            destination_type=DestinationType.SQL,
-            dataset_name="ds",
-            table_name="t",
-            connection_string="postgresql:///",
-            sql_dialect=None,
-        ),
-        extract=ExtractConfig(),
-        load=LoadConfig(),
-    )
     with pytest.raises(ValidationError, match="sql_dialect"):
-        validate_load_plan(plan)
+        LoadPlan(
+            pipeline_name="p",
+            source=SourceConfig(
+                source_type=SourceType.SQL,
+                connection_string="postgresql:///",
+                table_or_query="SELECT 1",
+                sql_dialect=SqlDialect.POSTGRES,
+            ),
+            destination=DestinationConfig(
+                destination_type=DestinationType.SQL,
+                dataset_name="ds",
+                table_name="t",
+                connection_string="postgresql:///",
+                sql_dialect=None,
+            ),
+            extract=ExtractConfig(),
+            load=LoadConfig(),
+        )
 
 
 def test_filesystem_destination_requires_url_no_sql_dialect() -> None:
-    plan = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(source_type=SourceType.S3, s3_path="s3://b/"),
-        destination=DestinationConfig(
+    with pytest.raises(ValidationError, match="filesystem_url"):
+        DestinationConfig(
             destination_type=DestinationType.SFTP,
             dataset_name="ds",
             table_name="t",
             filesystem_url="",
-        ),
-        extract=ExtractConfig(),
-        load=LoadConfig(),
-    )
-    with pytest.raises(ValidationError, match="filesystem_url"):
-        validate_load_plan(plan)
+        )
 
-    plan2 = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(source_type=SourceType.S3, s3_path="s3://b/"),
-        destination=DestinationConfig(
+    with pytest.raises(ValidationError, match="sql_dialect"):
+        DestinationConfig(
             destination_type=DestinationType.S3,
             dataset_name="ds",
             table_name="t",
             filesystem_url="s3://out/",
             sql_dialect=SqlDialect.POSTGRES,
-        ),
-        extract=ExtractConfig(),
-        load=LoadConfig(),
-    )
-    with pytest.raises(ValidationError, match="sql_dialect"):
-        validate_load_plan(plan2)
+        )
 
 
 def test_filesystem_destination_rejects_json_write_format() -> None:
-    plan = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(source_type=SourceType.S3, s3_path="s3://b/"),
-        destination=DestinationConfig(
+    with pytest.raises(ValidationError, match="file_format"):
+        DestinationConfig(
             destination_type=DestinationType.S3,
             dataset_name="ds",
             table_name="t",
             filesystem_url="s3://out/",
             file_format=FileFormat.JSON,
-        ),
-        extract=ExtractConfig(),
-        load=LoadConfig(),
-    )
-    with pytest.raises(ValidationError, match="file_format"):
-        validate_load_plan(plan)
+        )
 
 
 def test_sql_destination_rejects_file_format() -> None:
-    plan = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(
-            source_type=SourceType.SQL,
-            connection_string="postgresql:///",
-            table_or_query="SELECT 1",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        destination=DestinationConfig(
+    with pytest.raises(ValidationError, match="file_format"):
+        DestinationConfig(
             destination_type=DestinationType.SQL,
             dataset_name="ds",
             table_name="t",
             connection_string="postgresql:///",
             sql_dialect=SqlDialect.POSTGRES,
             file_format=FileFormat.CSV,
+        )
+
+
+def test_incremental_requires_cursor() -> None:
+    with pytest.raises(ValidationError, match="cursor_field"):
+        ExtractConfig(incremental=True, cursor_field=None)
+
+
+def test_merge_requires_primary_key() -> None:
+    with pytest.raises(ValidationError, match="primary_key"):
+        LoadPlan(
+            pipeline_name="p",
+            source=SourceConfig(
+                source_type=SourceType.SQL,
+                connection_string="postgresql:///",
+                table_or_query="SELECT 1",
+                sql_dialect=SqlDialect.POSTGRES,
+            ),
+            destination=DestinationConfig(
+                destination_type=DestinationType.SQL,
+                dataset_name="ds",
+                table_name="t",
+                connection_string="postgresql:///",
+                sql_dialect=SqlDialect.POSTGRES,
+            ),
+            extract=ExtractConfig(primary_key=None),
+            load=LoadConfig(write_mode=WriteMode.MERGE),
+        )
+
+
+def test_chunk_size_positive() -> None:
+    with pytest.raises(ValidationError, match="chunk_size"):
+        ExtractConfig(chunk_size=0)
+
+
+def test_revalidation_after_model_construct_fails() -> None:
+    """Bypass model validation then fail on explicit re-validation."""
+    src = SourceConfig.model_construct(
+        source_type=SourceType.SQL,
+        connection_string="postgresql:///",
+        table_or_query="SELECT 1",
+        sql_dialect=None,
+    )
+    plan = LoadPlan.model_construct(
+        pipeline_name="ok",
+        source=src,
+        destination=DestinationConfig(
+            destination_type=DestinationType.SQL,
+            dataset_name="ds",
+            table_name="t",
+            connection_string="postgresql:///",
+            sql_dialect=SqlDialect.POSTGRES,
         ),
         extract=ExtractConfig(),
         load=LoadConfig(),
     )
-    with pytest.raises(ValidationError, match="file_format"):
-        validate_load_plan(plan)
-
-
-def test_incremental_requires_cursor() -> None:
-    plan = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(
-            source_type=SourceType.SQL,
-            connection_string="postgresql:///",
-            table_or_query="SELECT 1",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        destination=DestinationConfig(
-            destination_type=DestinationType.SQL,
-            dataset_name="ds",
-            table_name="t",
-            connection_string="postgresql:///",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        extract=ExtractConfig(incremental=True, cursor_field=None),
-        load=LoadConfig(),
-    )
-    with pytest.raises(ValidationError, match="cursor_field"):
-        validate_load_plan(plan)
-
-
-def test_merge_requires_primary_key() -> None:
-    plan = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(
-            source_type=SourceType.SQL,
-            connection_string="postgresql:///",
-            table_or_query="SELECT 1",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        destination=DestinationConfig(
-            destination_type=DestinationType.SQL,
-            dataset_name="ds",
-            table_name="t",
-            connection_string="postgresql:///",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        extract=ExtractConfig(primary_key=None),
-        load=LoadConfig(write_mode=WriteMode.MERGE),
-    )
-    with pytest.raises(ValidationError, match="primary_key"):
-        validate_load_plan(plan)
-
-
-def test_chunk_size_positive() -> None:
-    plan = LoadPlan(
-        pipeline_name="p",
-        source=SourceConfig(
-            source_type=SourceType.SQL,
-            connection_string="postgresql:///",
-            table_or_query="SELECT 1",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        destination=DestinationConfig(
-            destination_type=DestinationType.SQL,
-            dataset_name="ds",
-            table_name="t",
-            connection_string="postgresql:///",
-            sql_dialect=SqlDialect.POSTGRES,
-        ),
-        extract=ExtractConfig(chunk_size=0),
-        load=LoadConfig(),
-    )
-    with pytest.raises(ValidationError, match="chunk_size"):
-        validate_load_plan(plan)
+    with pytest.raises(ValidationError):
+        LoadPlan.model_validate(plan.model_dump(mode="python"))

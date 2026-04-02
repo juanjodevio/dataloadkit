@@ -1,8 +1,6 @@
-"""Dataclass construction, defaults, and annotations."""
+"""Model construction, defaults, and immutability."""
 
 from __future__ import annotations
-
-from dataclasses import FrozenInstanceError
 
 import pytest
 from dlk.core import (
@@ -18,6 +16,7 @@ from dlk.core import (
     WriteMode,
 )
 from dlk.results import LoadResult
+from pydantic import ValidationError
 
 
 def test_source_config_sql_defaults() -> None:
@@ -85,7 +84,7 @@ def test_load_plan_is_frozen() -> None:
         load=LoadConfig(),
     )
     assert plan.pipeline_name == "pipe"
-    with pytest.raises(FrozenInstanceError):
+    with pytest.raises(ValidationError):
         plan.pipeline_name = "other"  # type: ignore[misc]
 
 

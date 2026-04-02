@@ -161,7 +161,7 @@ Not applicable for MVP.
 - dlt-native, not dlt-replacement
 
 ## Data Model Overview
-Implement as **stdlib `dataclasses`** with validation in `core/` (see **`TECH.md`**).
+Implement as **Pydantic models** with validation in `core/` (see **`TECH.md`**).
 
 - SourceConfig (SQL, S3)—each resolves to a dlt source; **SQL** sources carry **`sql_dialect`** (**Redshift** vs **PostgreSQL**) for correct dlt source wiring
 - DestinationConfig (SQL, S3, SFTP)—each resolves to a dlt destination; **SQL** targets carry **`sql_dialect`** so the adapter selects **`dlt.destinations.redshift`** vs **`dlt.destinations.postgres`**
