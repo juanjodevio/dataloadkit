@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 spec_name: mvp
 plan: 1
 task_slug: scaffold
