@@ -117,6 +117,28 @@ def test_sql_source_rejects_s3_path() -> None:
         )
 
 
+def test_sql_source_rejects_s3_only_file_format() -> None:
+    with pytest.raises(ValidationError, match="file_format"):
+        SourceConfig(
+            source_type=SourceType.SQL,
+            connection_string="postgresql:///",
+            table_or_query="SELECT 1",
+            sql_dialect=SqlDialect.POSTGRES,
+            file_format=FileFormat.PARQUET,
+        )
+
+
+def test_sql_source_rejects_s3_only_glob_pattern() -> None:
+    with pytest.raises(ValidationError, match="glob_pattern"):
+        SourceConfig(
+            source_type=SourceType.SQL,
+            connection_string="postgresql:///",
+            table_or_query="SELECT 1",
+            sql_dialect=SqlDialect.POSTGRES,
+            glob_pattern="*.parquet",
+        )
+
+
 def test_s3_source_requires_path_and_no_sql_fields() -> None:
     with pytest.raises(ValidationError, match="s3_path"):
         SourceConfig(source_type=SourceType.S3, s3_path="")
