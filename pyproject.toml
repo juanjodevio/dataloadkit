@@ -20,13 +20,20 @@ redshift = ["dlt[redshift]"]
 postgres = ["dlt[postgres]"]
 filesystem = ["dlt[filesystem]"]
 sftp = ["dlt[sftp]"]
-mvp = ["dlt[redshift,postgres,filesystem,sftp]"]
+mvp = [
+    "dlt[redshift,postgres,filesystem,sftp]",
+    "sqlalchemy>=2.0",
+    "greenlet==3.2.4",
+]
 
 [dependency-groups]
 dev = [
     "ruff>=0.8.0",
     "mypy>=1.13.0",
     "pytest>=8.3.0",
+    "sqlalchemy>=2.0",
+    # Pin so Windows resolves a greenlet wheel (3.2.5 may try to build from source).
+    "greenlet==3.2.4",
 ]
 
 [tool.hatch.build.targets.wheel]

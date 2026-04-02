@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 spec_name: mvp
 plan: 2
 task_slug: core-models

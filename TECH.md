@@ -167,7 +167,7 @@ Environments:
 | `postgres` | `dlt[postgres]` | **PostgreSQL** SQL sources and destinations ([dlt Postgres](https://dlthub.com/docs/dlt-ecosystem/destinations/postgres)) |
 | `filesystem` | `dlt[filesystem]` | S3 (and other filesystem) sources/destinations via dlt filesystem |
 | `sftp` | `dlt[sftp]` | SFTP URLs with filesystem destination ([paramiko](https://dlthub.com/docs/dlt-ecosystem/destinations/filesystem)) |
-| `mvp` | `dlt[redshift,postgres,filesystem,sftp]` | Full **MVP** surface in **`PRODUCT.md`**—**Redshift + PostgreSQL + S3 + SFTP** (recommended default for library consumers) |
+| `mvp` | `dlt[redshift,postgres,filesystem,sftp]`, **`sqlalchemy`**, pinned **`greenlet`** (wheel-friendly on Windows) | Full **MVP** surface in **`PRODUCT.md`**—**Redshift + PostgreSQL + S3 + SFTP** plus SQL **`sql_database`** / connector wiring (recommended default for library consumers) |
 
 - **Base** runtime dependency: pin **`dlt`** with a floor version only (no brackets in `dependencies`); consumers choose extras, or install **`dataloadkit[mvp]`** for the documented MVP.
 - **Development / CI:** use **`uv sync --extra mvp`** (or `--all-extras` if you want every optional stack resolvable in the lockfile) so tests and examples match MVP scope.
