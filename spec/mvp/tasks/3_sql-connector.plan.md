@@ -32,14 +32,14 @@ Implement thin helpers in `dlk/connectors/` that translate a `SourceConfig` (typ
 
 ## Definition of done
 
-- [ ] `dlk/connectors/sql.py` exists with a function (e.g. `build_sql_source`) that accepts `SourceConfig` + `ExtractConfig` and returns dlt-compatible resource/source configuration.
-- [ ] Supports table-based extraction (table name).
-- [ ] Supports query-based extraction (raw SQL string).
-- [ ] Supports incremental via cursor field when `ExtractConfig.incremental` is true.
-- [ ] Supports primary key passthrough for merge write mode.
-- [ ] Unit tests verify correct dlt resource shape for each mode (table, query, incremental, primary key) **and for both SQL dialects** where dlt APIs differ.
-- [ ] Connector does NOT perform any database I/O directly.
-- [ ] `uv run ruff check`, `uv run mypy dlk`, `uv run pytest` all green.
+- [x] `dlk/connectors/sql.py` exists with a function (e.g. `build_sql_source`) that accepts `SourceConfig` + `ExtractConfig` and returns dlt-compatible resource/source configuration.
+- [x] Supports table-based extraction (table name).
+- [x] Supports query-based extraction (raw SQL string).
+- [x] Supports incremental via cursor field when `ExtractConfig.incremental` is true.
+- [x] Supports primary key passthrough for merge write mode.
+- [x] Unit tests verify correct dlt resource shape for each mode (table, query, incremental, primary key) **and for both SQL dialects** where dlt APIs differ.
+- [x] Connector does NOT perform any database I/O directly.
+- [x] `uv run ruff check`, `uv run mypy dlk`, `uv run pytest` all green.
 
 ## Inter-task dependencies
 
@@ -60,14 +60,14 @@ Implement thin helpers in `dlk/connectors/` that translate a `SourceConfig` (typ
 
 ## Steps
 
-- [ ] **Step 1:** Research dlt's `sql_database` (and engine-specific) source APIs — confirm how to express table, query, incremental, and primary key configuration for **Redshift** vs **PostgreSQL** sources per **`SourceConfig.sql_dialect`**.
-- [ ] **Step 2:** Create `dlk/connectors/__init__.py` with public exports.
-- [ ] **Step 3:** Create `dlk/connectors/sql.py` — `build_sql_source(source_config: SourceConfig, extract_config: ExtractConfig) -> ...` returning the dlt resource/source callable or configuration dict the adapter will use; **branch on `source_config.sql_dialect`** (**Redshift** vs **PostgreSQL**).
-- [ ] **Step 4:** Handle table vs query input branching.
-- [ ] **Step 5:** Handle incremental configuration (attach `dlt.sources.incremental` or equivalent when cursor field is set).
-- [ ] **Step 6:** Handle primary key passthrough.
-- [ ] **Step 7:** Add unit tests in `tests/connectors/test_sql.py` — mock or stub dlt internals; assert correct configuration shape for: plain table, plain query, incremental table, table with primary key, **and both Redshift vs PostgreSQL dialect branches**.
-- [ ] **Step 8:** Verify: `uv run ruff check`, `uv run mypy dlk`, `uv run pytest`.
+- [x] **Step 1:** Research dlt's `sql_database` (and engine-specific) source APIs — confirm how to express table, query, incremental, and primary key configuration for **Redshift** vs **PostgreSQL** sources per **`SourceConfig.sql_dialect`**.
+- [x] **Step 2:** Create `dlk/connectors/__init__.py` with public exports.
+- [x] **Step 3:** Create `dlk/connectors/sql.py` — `build_sql_source(source_config: SourceConfig, extract_config: ExtractConfig) -> ...` returning the dlt resource/source callable or configuration dict the adapter will use; **branch on `source_config.sql_dialect`** (**Redshift** vs **PostgreSQL**).
+- [x] **Step 4:** Handle table vs query input branching.
+- [x] **Step 5:** Handle incremental configuration (attach `dlt.sources.incremental` or equivalent when cursor field is set).
+- [x] **Step 6:** Handle primary key passthrough.
+- [x] **Step 7:** Add unit tests in `tests/connectors/test_sql.py` — mock or stub dlt internals; assert correct configuration shape for: plain table, plain query, incremental table, table with primary key, **and both Redshift vs PostgreSQL dialect branches**.
+- [x] **Step 8:** Verify: `uv run ruff check`, `uv run mypy dlk`, `uv run pytest`.
 
 ## Other dependencies
 
