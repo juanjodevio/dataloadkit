@@ -8,6 +8,9 @@ from typing import Any, Callable
 
 from dlt.common.libs.sql_alchemy import sa
 from dlt.extract import Incremental
+from sqlalchemy.sql import literal_column, visitors
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.schema import Column as SAColumn
 from sqlalchemy.sql.util import ClauseAdapter
 
 from dlk.core.extract_config import ExtractConfig
@@ -28,6 +31,8 @@ _AFTER_FROM_RELATION = re.compile(
 
 # One identifier segment: double-quoted, backtick-quoted, or unquoted word.
 _FROM_IDENT_SEGMENT = re.compile(r'"[^"]+"|`[^`]+`|\w+')
+# Same pattern for schema.table paths in table-mode ``table_or_query`` (split before unquoting).
+_QUALIFIED_PATH_SEGMENT = _FROM_IDENT_SEGMENT
 
 # Whole-token match only (avoids classifying ``selective_users`` / ``with_events`` as SQL).
 _SQL_STATEMENT_START = re.compile(r"(?is)\b(SELECT|WITH|VALUES)\b")
@@ -76,11 +81,54 @@ def _strip_sql_ident(raw: str) -> str:
 
 
 def _split_schema_and_table(qualified: str) -> tuple[str | None, str]:
-    q = _strip_sql_ident(qualified)
-    if "." in q:
-        schema, name = q.rsplit(".", 1)
-        return (_strip_sql_ident(schema) or None, _strip_sql_ident(name))
-    return (None, q)
+    """Split a dotted schema path; unquote each segment (not the whole string).
+
+    ``"public"."users"`` → ``("public", "users")``. Stripping quotes from the full input
+    first would corrupt names (e.g. ``public"`` / ``"users``).
+    """
+    q = qualified.strip()
+    if not q:
+        return (None, "")
+    segments: list[str] = []
+    pos = 0
+    n = len(q)
+    while pos < n:
+        c = q[pos]
+        if c.isspace():
+            pos += 1
+            continue
+        if c == ".":
+            pos += 1
+            continue
+        mo = _QUALIFIED_PATH_SEGMENT.match(q, pos)
+        if not mo:
+            break
+        segments.append(_strip_sql_ident(mo.group(0)))
+        pos = mo.end()
+    if not segments:
+        return (None, _strip_sql_ident(q))
+    if len(segments) == 1:
+        return (None, segments[0])
+    return (".".join(segments[:-1]), segments[-1])
+
+
+def _table_column_names_referenced_in_select(base_select: Any, table: Any) -> frozenset[str]:
+    """Column names from ``table`` used in WHERE / ORDER BY of dlt's incremental select."""
+    names: set[str] = set()
+
+    def collect(clause: Any) -> None:
+        if clause is None:
+            return
+        for elem in visitors.iterate(clause):
+            if isinstance(elem, SAColumn) and elem.table is table:
+                names.add(elem.name)
+
+    collect(base_select.whereclause)
+    ob = getattr(base_select, "_order_by_clause", None)
+    if ob is not None:
+        for part in ob:
+            collect(part)
+    return frozenset(names)
 
 
 def _infer_from_schema_table(sql: str) -> tuple[str | None, str] | None:
@@ -145,14 +193,22 @@ def _merge_user_sql_with_incremental_select(
     dlt builds ``base_select`` from the reflected table with incremental predicates.
     Returning bare ``text(user_sql)`` drops those clauses; this keeps them on the outer
     query over the user's statement.
+
+    Only columns referenced in incremental WHERE/ORDER are declared on the inner
+    ``text()`` subquery so custom ``SELECT`` lists (subset of table columns) stay valid;
+    the outer query uses ``SELECT *`` from that subquery.
     """
-    typed_cols = [sa.column(c.name, c.type) for c in table.columns]
+    needed = _table_column_names_referenced_in_select(base_select, table)
+    if not needed:
+        needed = frozenset(c.name for c in table.columns)
+    typed_cols = [sa.column(name, table.c[name].type) for name in sorted(needed)]
     inner = sa.text(user_sql).columns(*typed_cols).subquery("dlk_inner")
-    equiv = {c: {inner.c[c.name]} for c in table.columns}
+    equiv: dict[ColumnElement[Any], set[ColumnElement[Any]]] = {
+        table.c[name]: {inner.c[name]} for name in needed
+    }
     clause_adapt = ClauseAdapter(inner, equivalents=equiv)
 
-    projected = [inner.c[c.name] for c in table.columns]
-    out = sa.select(*projected).select_from(inner)
+    out: Any = sa.select(literal_column("*")).select_from(inner)
     if base_select.whereclause is not None:
         out = out.where(clause_adapt.traverse(base_select.whereclause))
     ob = getattr(base_select, "_order_by_clause", None)
@@ -259,8 +315,7 @@ def build_sql_source(
     if extract_config.incremental:
         if not (extract_config.cursor_field and str(extract_config.cursor_field).strip()):
             raise ValueError(
-                "extract.cursor_field is required and must be non-empty "
-                "when incremental is true",
+                "extract.cursor_field is required and must be non-empty when incremental is true",
             )
         incremental = Incremental(extract_config.cursor_field)
 

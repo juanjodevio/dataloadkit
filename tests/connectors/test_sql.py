@@ -37,6 +37,12 @@ def test_table_mode_qualified_schema() -> None:
     assert m.table == "users"
 
 
+def test_table_mode_double_quoted_schema_and_table_path() -> None:
+    m = build_sql_source(_sql_src('"public"."users"'), ExtractConfig())
+    assert m.schema == "public"
+    assert m.table == "users"
+
+
 def test_table_mode_redshift_engine_kwargs() -> None:
     m = _sql_src("events", SqlDialect.REDSHIFT)
     material = build_sql_source(m, ExtractConfig())
@@ -61,10 +67,7 @@ def test_query_mode_double_quoted_schema_and_table() -> None:
 
 
 def test_query_mode_stops_before_join_not_consuming_join_operand() -> None:
-    sql = (
-        "SELECT * FROM analytics.events ev "
-        "INNER JOIN analytics.dim d ON ev.id = d.id"
-    )
+    sql = "SELECT * FROM analytics.events ev INNER JOIN analytics.dim d ON ev.id = d.id"
     m = build_sql_source(_sql_src(sql), ExtractConfig())
     assert m.schema == "analytics"
     assert m.table == "events"
@@ -165,3 +168,25 @@ def test_incremental_query_adapter_preserves_incremental_predicate() -> None:
     assert "99" in compiled
     assert "updated_at" in compiled
     assert user_sql.replace(" ", "") in compiled.replace(" ", "") or "public.users" in compiled
+
+
+def test_incremental_query_adapter_subset_columns_no_full_table_projection() -> None:
+    """Inner subquery must not declare every reflected column when SQL returns a subset."""
+    md = MetaData()
+    tbl = Table(
+        "users",
+        md,
+        Column("id", Integer),
+        # Avoid column names that are substrings of ``updated_at`` (e.g. ``name``).
+        Column("payload", Integer),
+        Column("updated_at", Integer),
+    )
+    eng = create_engine("sqlite://")
+    base = select(tbl).where(tbl.c.updated_at > 1).order_by(tbl.c.updated_at.asc())
+    user_sql = "SELECT id, updated_at FROM public.users"
+    ext = ExtractConfig(incremental=True, cursor_field="updated_at")
+    m = build_sql_source(_sql_src(user_sql), ext)
+    merged = m.query_adapter_callback(base, tbl, m.incremental, eng)
+    compiled = str(merged.compile(eng, compile_kwargs={"literal_binds": True}))
+    assert "payload" not in compiled
+    assert "updated_at" in compiled
